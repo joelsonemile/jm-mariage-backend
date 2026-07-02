@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<title>Votre place est confirmée</title>
+</head>
+<body style="margin:0;padding:0;background-color:#0A0A0A;font-family:Georgia,'Playfair Display',serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0A0A0A;padding:32px 0;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="background-color:#111111;border:1px solid #2A2A2A;border-radius:12px;overflow:hidden;">
+          <tr>
+            <td align="center" style="padding:32px 24px 8px 24px;">
+              <div style="color:#C9A84C;font-size:36px;letter-spacing:2px;">JM</div>
+              <div style="color:#F5F5F5;font-family:Georgia,serif;font-style:italic;font-size:15px;">Joelson &amp; Marjorie</div>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:16px 24px 0 24px;">
+              <div style="color:#FFD700;font-size:20px;font-weight:bold;">Réservation confirmée ✦</div>
+              <p style="color:#F5F5F5;font-size:15px;line-height:1.6;font-family:Arial,sans-serif;">
+                Bonjour {{fullName}},<br/>
+                Votre place a été validée par les mariés. Voici votre billet d'embarquement pour le grand jour.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:8px 24px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" style="background-color:#1A1A1A;border:1px solid #C9A84C;border-radius:10px;width:100%;">
+                <tr>
+                  <td style="padding:16px 20px;font-family:Arial,sans-serif;color:#888888;font-size:12px;text-transform:uppercase;">Table</td>
+                  <td style="padding:16px 20px;font-family:Arial,sans-serif;color:#F5F5F5;font-size:15px;text-align:right;">{{tableName}}</td>
+                </tr>
+                <tr>
+                  <td style="padding:0 20px 16px 20px;font-family:Arial,sans-serif;color:#888888;font-size:12px;text-transform:uppercase;">Place</td>
+                  <td style="padding:0 20px 16px 20px;font-family:Arial,sans-serif;color:#FFD700;font-size:15px;text-align:right;">#{{seatNumber}}</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:20px 24px 8px 24px;">
+              <img src="cid:qrcode" alt="QR code" width="180" height="180" style="border-radius:8px;background:#fff;padding:8px;" />
+              <p style="color:#888888;font-size:12px;font-family:Arial,sans-serif;">Présentez ce QR code à l'entrée</p>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:16px 24px 32px 24px;">
+              <p style="color:#888888;font-size:12px;font-family:Arial,sans-serif;">Vous pourrez retélécharger ce billet à tout moment depuis votre espace invité.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
