@@ -34,8 +34,8 @@ async function seedWeddingInfo() {
   if (existing) return;
 
   await WeddingInfo.create({
-    date: new Date("2026-09-05T15:00:00+01:00"),
-    dateLabel: "Asabotsy 05 Septembre 2026",
+    date: new Date("2026-09-12T15:00:00+01:00"),
+    dateLabel: "Asabotsy 12 Septembre 2026",
     ceremonyTime: "15h00 — Bénédiction nuptiale",
     location: "Agadir, Maroc",
     dressCode: "Élégante — touches dorées appréciées",
