@@ -202,41 +202,48 @@ const deleteGuest = asyncHandler(async (req, res) => {
 
 const listInvitedGuests = asyncHandler(async (req, res) => {
   const search = req.query.search || "";
-  const filter = search
-    ? {
-        $or: [
-          { nom: new RegExp(search, "i") },
-          { prenom: new RegExp(search, "i") },
-          { telephone: new RegExp(search, "i") },
-        ],
-      }
-    : {};
+  const categorie = req.query.categorie || "";
 
-  const invitedGuests = await InvitedGuest.find(filter).sort({ nom: 1, prenom: 1 });
+  const filter = {
+    ...(categorie ? { categorie } : {}),
+    ...(search
+      ? {
+          $or: [
+            { nom: new RegExp(search, "i") },
+            { prenom: new RegExp(search, "i") },
+            { telephone: new RegExp(search, "i") },
+          ],
+        }
+      : {}),
+  };
+
+  const invitedGuests = await InvitedGuest.find(filter).sort({ categorie: 1, nom: 1, prenom: 1 });
   return ok(res, { invitedGuests });
 });
 
 const createInvitedGuest = asyncHandler(async (req, res) => {
-  const { nom, prenom, telephone } = req.body;
+  const { nom, prenom, telephone, categorie } = req.body;
   if (!nom && !prenom) throw new ApiError(400, "Nom ou prénom requis.");
 
   const invitedGuest = await InvitedGuest.create({
     nom: nom || "",
     prenom: prenom || "",
     telephone: telephone || "",
+    categorie: categorie || "Autres",
   });
 
   return ok(res, { invitedGuest }, 201);
 });
 
 const updateInvitedGuest = asyncHandler(async (req, res) => {
-  const { nom, prenom, telephone } = req.body;
+  const { nom, prenom, telephone, categorie } = req.body;
   const invitedGuest = await InvitedGuest.findById(req.params.id);
   if (!invitedGuest) throw new ApiError(404, "Invité attendu introuvable.");
 
   if (nom !== undefined) invitedGuest.nom = nom;
   if (prenom !== undefined) invitedGuest.prenom = prenom;
   if (telephone !== undefined) invitedGuest.telephone = telephone;
+  if (categorie !== undefined) invitedGuest.categorie = categorie;
 
   await invitedGuest.save();
   return ok(res, { invitedGuest });

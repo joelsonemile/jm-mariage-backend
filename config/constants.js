@@ -11,6 +11,19 @@ const LINKS_TO_COUPLE = [
   "Autres",
 ];
 
+const INVITED_GUEST_CATEGORIES = [
+  "Extérieur",
+  "Chorale",
+  "Membre de bureau",
+  "Membre CP",
+  "Église Grâce",
+  "Accueil",
+  "Cuisine",
+  "Multimédia",
+  "Serveur",
+  "Autres",
+];
+
 const RSVP_STATUS = {
   PENDING: "pending",
   YES: "yes",
@@ -52,6 +65,7 @@ const GUEST_TABLES = [
 module.exports = {
   ROLES,
   LINKS_TO_COUPLE,
+  INVITED_GUEST_CATEGORIES,
   RSVP_STATUS,
   RESERVATION_STATUS,
   SEATS_PER_TABLE,
