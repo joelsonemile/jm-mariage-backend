@@ -37,7 +37,8 @@ async function seedWeddingInfo() {
     date: new Date("2026-09-12T15:00:00+01:00"),
     dateLabel: "Asabotsy 12 Septembre 2026",
     ceremonyTime: "15h00 — Bénédiction nuptiale",
-    location: "Agadir, Maroc",
+    location: "Église EEAM, Agadir, Maroc",
+    mapUrl: "https://maps.app.goo.gl/3nCP5VXX7AC4NKP49",
     dressCode: "Élégante — touches dorées appréciées",
     programSummary: "15h Cérémonie • 18h Cocktail • 20h Dîner & soirée",
     programDetailed: [

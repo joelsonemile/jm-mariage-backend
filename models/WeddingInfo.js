@@ -15,6 +15,7 @@ const weddingInfoSchema = new mongoose.Schema(
     dateLabel: { type: String, default: "" },
     ceremonyTime: { type: String, default: "" },
     location: { type: String, default: "" },
+    mapUrl: { type: String, default: "" },
     dressCode: { type: String, default: "" },
     programSummary: { type: String, default: "" },
     programDetailed: { type: [programStepSchema], default: [] },
