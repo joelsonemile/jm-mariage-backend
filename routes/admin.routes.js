@@ -25,6 +25,11 @@ router.post("/invited-guests", adminController.createInvitedGuest);
 router.put("/invited-guests/:id", adminController.updateInvitedGuest);
 router.delete("/invited-guests/:id", adminController.deleteInvitedGuest);
 
+router.get("/categories", adminController.listCategories);
+router.post("/categories", adminController.createCategory);
+router.put("/categories/:id", adminController.updateCategory);
+router.delete("/categories/:id", adminController.deleteCategory);
+
 router.get("/export/csv", adminController.exportGuestsCsv);
 
 module.exports = router;

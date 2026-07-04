@@ -4,6 +4,7 @@ const User = require("../models/User");
 const Table = require("../models/Table");
 const Reservation = require("../models/Reservation");
 const InvitedGuest = require("../models/InvitedGuest");
+const Category = require("../models/Category");
 const asyncHandler = require("../utils/asyncHandler");
 const { ApiError, ok } = require("../utils/apiResponse");
 const { ROLES, RESERVATION_STATUS } = require("../config/constants");
@@ -256,6 +257,56 @@ const deleteInvitedGuest = asyncHandler(async (req, res) => {
   return ok(res, { message: "Invité attendu supprimé." });
 });
 
+const listCategories = asyncHandler(async (req, res) => {
+  const categories = await Category.find().sort({ nom: 1 });
+  return ok(res, { categories });
+});
+
+const createCategory = asyncHandler(async (req, res) => {
+  const { nom } = req.body;
+  if (!nom) throw new ApiError(400, "Nom de catégorie requis.");
+
+  const existing = await Category.findOne({ nom: new RegExp(`^${nom}$`, "i") });
+  if (existing) throw new ApiError(409, "Cette catégorie existe déjà.");
+
+  const category = await Category.create({ nom });
+  return ok(res, { category }, 201);
+});
+
+const updateCategory = asyncHandler(async (req, res) => {
+  const { nom } = req.body;
+  if (!nom) throw new ApiError(400, "Nom de catégorie requis.");
+
+  const category = await Category.findById(req.params.id);
+  if (!category) throw new ApiError(404, "Catégorie introuvable.");
+
+  const existing = await Category.findOne({ _id: { $ne: category._id }, nom: new RegExp(`^${nom}$`, "i") });
+  if (existing) throw new ApiError(409, "Cette catégorie existe déjà.");
+
+  const previousName = category.nom;
+  category.nom = nom;
+  await category.save();
+
+  if (previousName !== nom) {
+    await InvitedGuest.updateMany({ categorie: previousName }, { categorie: nom });
+  }
+
+  return ok(res, { category });
+});
+
+const deleteCategory = asyncHandler(async (req, res) => {
+  const category = await Category.findById(req.params.id);
+  if (!category) throw new ApiError(404, "Catégorie introuvable.");
+
+  const usageCount = await InvitedGuest.countDocuments({ categorie: category.nom });
+  if (usageCount > 0) {
+    throw new ApiError(409, `${usageCount} invité(s) attendu(s) utilisent cette catégorie. Réassignez-les avant de la supprimer.`);
+  }
+
+  await category.deleteOne();
+  return ok(res, { message: "Catégorie supprimée." });
+});
+
 const exportGuestsCsv = asyncHandler(async (req, res) => {
   const guests = await User.find({ role: ROLES.GUEST });
   const reservations = await Reservation.find({ status: { $in: ACTIVE_STATUSES } }).populate("table", "name");
@@ -296,5 +347,9 @@ module.exports = {
   createInvitedGuest,
   updateInvitedGuest,
   deleteInvitedGuest,
+  listCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
   exportGuestsCsv,
 };

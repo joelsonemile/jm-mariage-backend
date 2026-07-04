@@ -3,7 +3,8 @@ const User = require("../models/User");
 const Table = require("../models/Table");
 const WeddingInfo = require("../models/WeddingInfo");
 const InvitedGuest = require("../models/InvitedGuest");
-const { ROLES, HONOR_TABLE, GUEST_TABLES } = require("../config/constants");
+const Category = require("../models/Category");
+const { ROLES, HONOR_TABLE, GUEST_TABLES, INVITED_GUEST_CATEGORIES } = require("../config/constants");
 const { adminEmail, adminPassword, adminName } = require("../config/env");
 
 async function seedAdmin() {
@@ -137,10 +138,19 @@ async function seedInvitedGuests() {
   console.log(`[seed] ${INVITED_GUESTS_SEED.length} invités attendus créés`);
 }
 
+async function seedCategories() {
+  const count = await Category.countDocuments();
+  if (count > 0) return;
+
+  await Category.create(INVITED_GUEST_CATEGORIES.map((nom) => ({ nom })));
+  console.log(`[seed] ${INVITED_GUEST_CATEGORIES.length} catégories créées`);
+}
+
 async function runSeed() {
   await seedAdmin();
   await seedTables();
   await seedWeddingInfo();
+  await seedCategories();
   await seedInvitedGuests();
 }
 
