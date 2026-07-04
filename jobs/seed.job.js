@@ -2,6 +2,7 @@ const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const Table = require("../models/Table");
 const WeddingInfo = require("../models/WeddingInfo");
+const InvitedGuest = require("../models/InvitedGuest");
 const { ROLES, HONOR_TABLE, GUEST_TABLES } = require("../config/constants");
 const { adminEmail, adminPassword, adminName } = require("../config/env");
 
@@ -59,10 +60,88 @@ async function seedWeddingInfo() {
   console.log("[seed] Informations du mariage initialisées");
 }
 
+const INVITED_GUESTS_SEED = [
+  { nom: "Youmnah", prenom: "", telephone: "" },
+  { nom: "Ricardo", prenom: "", telephone: "" },
+  { nom: "Nadine", prenom: "", telephone: "" },
+  { nom: "Marcel", prenom: "", telephone: "" },
+  { nom: "Vadiny", prenom: "", telephone: "" },
+  { nom: "Cathy", prenom: "", telephone: "" },
+  { nom: "", prenom: "Pastora Nicolas", telephone: "" },
+  { nom: "Casimir", prenom: "", telephone: "" },
+  { nom: "Michelle", prenom: "", telephone: "" },
+  { nom: "Pulchérie", prenom: "", telephone: "" },
+  { nom: "Eltinah", prenom: "", telephone: "" },
+  { nom: "Dauphine", prenom: "", telephone: "" },
+  { nom: "", prenom: "Mohamed", telephone: "" },
+  { nom: "Azziz", prenom: "", telephone: "" },
+  { nom: "Loubna", prenom: "", telephone: "" },
+  { nom: "Imane", prenom: "", telephone: "" },
+  { nom: "Ambre", prenom: "", telephone: "" },
+  { nom: "Rodri", prenom: "", telephone: "" },
+  { nom: "Davilla", prenom: "", telephone: "" },
+
+  { nom: "Nirina", prenom: "", telephone: "" },
+  { nom: "Mardoché", prenom: "", telephone: "" },
+  { nom: "Emmanuella", prenom: "", telephone: "" },
+  { nom: "Samuel", prenom: "", telephone: "" },
+  { nom: "Romuald", prenom: "", telephone: "" },
+  { nom: "Chadrac", prenom: "", telephone: "" },
+  { nom: "Anjary", prenom: "", telephone: "" },
+  { nom: "Rova", prenom: "", telephone: "" },
+  { nom: "Samuella", prenom: "", telephone: "" },
+  { nom: "Naomie", prenom: "", telephone: "" },
+  { nom: "Winner", prenom: "", telephone: "" },
+  { nom: "Ramos", prenom: "", telephone: "" },
+  { nom: "Tchinief", prenom: "", telephone: "" },
+  { nom: "Universia Polis Femme", prenom: "", telephone: "" },
+  { nom: "Ait Meloul Femme", prenom: "", telephone: "" },
+
+  { nom: "Darasy", prenom: "Jean Laubritot", telephone: "0777343568" },
+  { nom: "Ralaiharison", prenom: "Mboara Nahary", telephone: "0773928349" },
+  { nom: "Rasolomanana", prenom: "Davida", telephone: "0621676080" },
+  { nom: "Rakotovao", prenom: "Valisoa Tahinjanahary", telephone: "0669755764" },
+  { nom: "Harena", prenom: "Zoly", telephone: "" },
+  { nom: "Ny Andritiana", prenom: "Yoann", telephone: "0625909244" },
+  { nom: "ANDRIAMASITIANA", prenom: "Kenny Maya", telephone: "0778632177" },
+  { nom: "RATEFISON", prenom: "Li-Ann Soanala", telephone: "0625557490" },
+  { nom: "Fitia", prenom: "", telephone: "" },
+  { nom: "Vaida", prenom: "", telephone: "" },
+  { nom: "Niaina", prenom: "Peige", telephone: "" },
+
+  { nom: "Frederic", prenom: "", telephone: "" },
+  { nom: "", prenom: "Pasteur Clement", telephone: "" },
+  { nom: "", prenom: "Maman Antoinette", telephone: "" },
+  { nom: "", prenom: "Pasteur David", telephone: "" },
+  { nom: "Charmilla", prenom: "", telephone: "" },
+  { nom: "Gerhard", prenom: "", telephone: "+212 658-262260" },
+  { nom: "Thierry", prenom: "", telephone: "" },
+
+  { nom: "Vola", prenom: "", telephone: "" },
+  { nom: "Joel", prenom: "", telephone: "" },
+  { nom: "Elya", prenom: "", telephone: "" },
+
+  { nom: "Emmanuel", prenom: "", telephone: "+212 630-107917" },
+  { nom: "Borda", prenom: "", telephone: "+212651024006" },
+  { nom: "Abdias", prenom: "", telephone: "+212 777-404130" },
+  { nom: "Mariame", prenom: "", telephone: "+212 719-688164" },
+  { nom: "Eunice", prenom: "", telephone: "+212 635-483889" },
+  { nom: "Grâce Divine", prenom: "", telephone: "+212 704-127946" },
+];
+
+async function seedInvitedGuests() {
+  const count = await InvitedGuest.countDocuments();
+  if (count > 0) return;
+
+  await InvitedGuest.create(INVITED_GUESTS_SEED);
+  console.log(`[seed] ${INVITED_GUESTS_SEED.length} invités attendus créés`);
+}
+
 async function runSeed() {
   await seedAdmin();
   await seedTables();
   await seedWeddingInfo();
+  await seedInvitedGuests();
 }
 
 module.exports = runSeed;

@@ -3,6 +3,7 @@ const crypto = require("crypto");
 const User = require("../models/User");
 const Table = require("../models/Table");
 const Reservation = require("../models/Reservation");
+const InvitedGuest = require("../models/InvitedGuest");
 const asyncHandler = require("../utils/asyncHandler");
 const { ApiError, ok } = require("../utils/apiResponse");
 const { ROLES, RESERVATION_STATUS } = require("../config/constants");
@@ -199,6 +200,55 @@ const deleteGuest = asyncHandler(async (req, res) => {
   return ok(res, { message: "Invité supprimé." });
 });
 
+const listInvitedGuests = asyncHandler(async (req, res) => {
+  const search = req.query.search || "";
+  const filter = search
+    ? {
+        $or: [
+          { nom: new RegExp(search, "i") },
+          { prenom: new RegExp(search, "i") },
+          { telephone: new RegExp(search, "i") },
+        ],
+      }
+    : {};
+
+  const invitedGuests = await InvitedGuest.find(filter).sort({ nom: 1, prenom: 1 });
+  return ok(res, { invitedGuests });
+});
+
+const createInvitedGuest = asyncHandler(async (req, res) => {
+  const { nom, prenom, telephone } = req.body;
+  if (!nom && !prenom) throw new ApiError(400, "Nom ou prénom requis.");
+
+  const invitedGuest = await InvitedGuest.create({
+    nom: nom || "",
+    prenom: prenom || "",
+    telephone: telephone || "",
+  });
+
+  return ok(res, { invitedGuest }, 201);
+});
+
+const updateInvitedGuest = asyncHandler(async (req, res) => {
+  const { nom, prenom, telephone } = req.body;
+  const invitedGuest = await InvitedGuest.findById(req.params.id);
+  if (!invitedGuest) throw new ApiError(404, "Invité attendu introuvable.");
+
+  if (nom !== undefined) invitedGuest.nom = nom;
+  if (prenom !== undefined) invitedGuest.prenom = prenom;
+  if (telephone !== undefined) invitedGuest.telephone = telephone;
+
+  await invitedGuest.save();
+  return ok(res, { invitedGuest });
+});
+
+const deleteInvitedGuest = asyncHandler(async (req, res) => {
+  const invitedGuest = await InvitedGuest.findByIdAndDelete(req.params.id);
+  if (!invitedGuest) throw new ApiError(404, "Invité attendu introuvable.");
+
+  return ok(res, { message: "Invité attendu supprimé." });
+});
+
 const exportGuestsCsv = asyncHandler(async (req, res) => {
   const guests = await User.find({ role: ROLES.GUEST });
   const reservations = await Reservation.find({ status: { $in: ACTIVE_STATUSES } }).populate("table", "name");
@@ -235,5 +285,9 @@ module.exports = {
   createGuest,
   updateGuest,
   deleteGuest,
+  listInvitedGuests,
+  createInvitedGuest,
+  updateInvitedGuest,
+  deleteInvitedGuest,
   exportGuestsCsv,
 };

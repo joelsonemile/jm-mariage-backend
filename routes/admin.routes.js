@@ -20,6 +20,11 @@ router.post("/guests", adminController.createGuest);
 router.put("/guests/:id", adminController.updateGuest);
 router.delete("/guests/:id", adminController.deleteGuest);
 
+router.get("/invited-guests", adminController.listInvitedGuests);
+router.post("/invited-guests", adminController.createInvitedGuest);
+router.put("/invited-guests/:id", adminController.updateInvitedGuest);
+router.delete("/invited-guests/:id", adminController.deleteInvitedGuest);
+
 router.get("/export/csv", adminController.exportGuestsCsv);
 
 module.exports = router;
