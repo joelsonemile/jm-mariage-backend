@@ -4,7 +4,7 @@ const morgan = require("morgan");
 const path = require("path");
 const http = require("http");
 
-const { port, clientUrl } = require("./config/env");
+const { port, clientUrls } = require("./config/env");
 const connectDB = require("./database/connection");
 const runSeed = require("./jobs/seed.job");
 const scheduleReminderJob = require("./jobs/reminder.job");
@@ -14,7 +14,7 @@ const routes = require("./routes");
 
 const app = express();
 
-app.use(cors({ origin: clientUrl, credentials: true }));
+app.use(cors({ origin: clientUrls, credentials: true }));
 app.use(express.json());
 app.use(morgan("dev"));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));

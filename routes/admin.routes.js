@@ -30,6 +30,11 @@ router.post("/categories", adminController.createCategory);
 router.put("/categories/:id", adminController.updateCategory);
 router.delete("/categories/:id", adminController.deleteCategory);
 
+router.get("/committee", adminController.listCommitteeMembers);
+router.post("/committee", adminController.createCommitteeMember);
+router.put("/committee/:id", adminController.updateCommitteeMember);
+router.delete("/committee/:id", adminController.deleteCommitteeMember);
+
 router.get("/export/csv", adminController.exportGuestsCsv);
 
 module.exports = router;

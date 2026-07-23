@@ -1,8 +1,17 @@
 require("dotenv").config();
 
+// CLIENT_URL accepte une liste séparée par des virgules (dev local + domaine Vercel
+// de prod, éventuellement des URLs de preview) — le premier sert de valeur par défaut
+// unique (ex: lien de réinitialisation de mot de passe).
+const clientUrls = (process.env.CLIENT_URL || "http://localhost:4200")
+  .split(",")
+  .map((url) => url.trim())
+  .filter(Boolean);
+
 module.exports = {
   port: process.env.PORT || 4000,
-  clientUrl: process.env.CLIENT_URL || "http://localhost:4200",
+  clientUrl: clientUrls[0],
+  clientUrls,
 
   dbUser: process.env.DB_USER,
   dbPassword: process.env.DB_PASSWORD,

@@ -5,6 +5,7 @@ const Table = require("../models/Table");
 const Reservation = require("../models/Reservation");
 const InvitedGuest = require("../models/InvitedGuest");
 const Category = require("../models/Category");
+const CommitteeMember = require("../models/CommitteeMember");
 const asyncHandler = require("../utils/asyncHandler");
 const { ApiError, ok } = require("../utils/apiResponse");
 const { ROLES, RESERVATION_STATUS } = require("../config/constants");
@@ -332,6 +333,47 @@ const exportGuestsCsv = asyncHandler(async (req, res) => {
   return res.send(csv);
 });
 
+const listCommitteeMembers = asyncHandler(async (req, res) => {
+  const commission = req.query.commission || "";
+  const filter = commission ? { commission } : {};
+
+  const committeeMembers = await CommitteeMember.find(filter).sort({ commission: 1, ordre: 1, nom: 1 });
+  return ok(res, { committeeMembers });
+});
+
+const createCommitteeMember = asyncHandler(async (req, res) => {
+  const { nom, role, commission } = req.body;
+  if (!nom) throw new ApiError(400, "Nom requis.");
+
+  const committeeMember = await CommitteeMember.create({
+    nom,
+    role: role || "",
+    commission: commission || "",
+  });
+
+  return ok(res, { committeeMember }, 201);
+});
+
+const updateCommitteeMember = asyncHandler(async (req, res) => {
+  const { nom, role, commission } = req.body;
+  const committeeMember = await CommitteeMember.findById(req.params.id);
+  if (!committeeMember) throw new ApiError(404, "Membre du comité introuvable.");
+
+  if (nom !== undefined) committeeMember.nom = nom;
+  if (role !== undefined) committeeMember.role = role;
+  if (commission !== undefined) committeeMember.commission = commission;
+
+  await committeeMember.save();
+  return ok(res, { committeeMember });
+});
+
+const deleteCommitteeMember = asyncHandler(async (req, res) => {
+  const committeeMember = await CommitteeMember.findByIdAndDelete(req.params.id);
+  if (!committeeMember) throw new ApiError(404, "Membre du comité introuvable.");
+
+  return ok(res, { message: "Membre du comité supprimé." });
+});
+
 module.exports = {
   dashboard,
   listReservations,
@@ -351,5 +393,9 @@ module.exports = {
   createCategory,
   updateCategory,
   deleteCategory,
+  listCommitteeMembers,
+  createCommitteeMember,
+  updateCommitteeMember,
+  deleteCommitteeMember,
   exportGuestsCsv,
 };
