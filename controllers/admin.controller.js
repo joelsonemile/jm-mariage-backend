@@ -343,12 +343,13 @@ const listCommitteeMembers = asyncHandler(async (req, res) => {
 });
 
 const createCommitteeMember = asyncHandler(async (req, res) => {
-  const { nom, role, commission } = req.body;
+  const { nom, role, description, commission } = req.body;
   if (!nom) throw new ApiError(400, "Nom requis.");
 
   const committeeMember = await CommitteeMember.create({
     nom,
     role: role || "",
+    description: description || "",
     commission: commission || "",
   });
 
@@ -356,12 +357,13 @@ const createCommitteeMember = asyncHandler(async (req, res) => {
 });
 
 const updateCommitteeMember = asyncHandler(async (req, res) => {
-  const { nom, role, commission } = req.body;
+  const { nom, role, description, commission } = req.body;
   const committeeMember = await CommitteeMember.findById(req.params.id);
   if (!committeeMember) throw new ApiError(404, "Membre du comité introuvable.");
 
   if (nom !== undefined) committeeMember.nom = nom;
   if (role !== undefined) committeeMember.role = role;
+  if (description !== undefined) committeeMember.description = description;
   if (commission !== undefined) committeeMember.commission = commission;
 
   await committeeMember.save();
