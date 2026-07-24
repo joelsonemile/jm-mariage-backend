@@ -35,6 +35,11 @@ router.post("/committee", adminController.createCommitteeMember);
 router.put("/committee/:id", adminController.updateCommitteeMember);
 router.delete("/committee/:id", adminController.deleteCommitteeMember);
 
+router.get("/commissions", adminController.listCommissions);
+router.post("/commissions", adminController.createCommission);
+router.put("/commissions/:id", adminController.updateCommission);
+router.delete("/commissions/:id", adminController.deleteCommission);
+
 router.get("/export/csv", adminController.exportGuestsCsv);
 
 module.exports = router;

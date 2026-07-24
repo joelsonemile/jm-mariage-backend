@@ -6,6 +6,7 @@ const Reservation = require("../models/Reservation");
 const InvitedGuest = require("../models/InvitedGuest");
 const Category = require("../models/Category");
 const CommitteeMember = require("../models/CommitteeMember");
+const Commission = require("../models/Commission");
 const asyncHandler = require("../utils/asyncHandler");
 const { ApiError, ok } = require("../utils/apiResponse");
 const { ROLES, RESERVATION_STATUS } = require("../config/constants");
@@ -374,6 +375,56 @@ const deleteCommitteeMember = asyncHandler(async (req, res) => {
   return ok(res, { message: "Membre du comité supprimé." });
 });
 
+const listCommissions = asyncHandler(async (req, res) => {
+  const commissions = await Commission.find().sort({ nom: 1 });
+  return ok(res, { commissions });
+});
+
+const createCommission = asyncHandler(async (req, res) => {
+  const { nom } = req.body;
+  if (!nom) throw new ApiError(400, "Nom de commission requis.");
+
+  const existing = await Commission.findOne({ nom: new RegExp(`^${nom}$`, "i") });
+  if (existing) throw new ApiError(409, "Cette commission existe déjà.");
+
+  const commission = await Commission.create({ nom });
+  return ok(res, { commission }, 201);
+});
+
+const updateCommission = asyncHandler(async (req, res) => {
+  const { nom } = req.body;
+  if (!nom) throw new ApiError(400, "Nom de commission requis.");
+
+  const commission = await Commission.findById(req.params.id);
+  if (!commission) throw new ApiError(404, "Commission introuvable.");
+
+  const existing = await Commission.findOne({ _id: { $ne: commission._id }, nom: new RegExp(`^${nom}$`, "i") });
+  if (existing) throw new ApiError(409, "Cette commission existe déjà.");
+
+  const previousName = commission.nom;
+  commission.nom = nom;
+  await commission.save();
+
+  if (previousName !== nom) {
+    await CommitteeMember.updateMany({ commission: previousName }, { commission: nom });
+  }
+
+  return ok(res, { commission });
+});
+
+const deleteCommission = asyncHandler(async (req, res) => {
+  const commission = await Commission.findById(req.params.id);
+  if (!commission) throw new ApiError(404, "Commission introuvable.");
+
+  const usageCount = await CommitteeMember.countDocuments({ commission: commission.nom });
+  if (usageCount > 0) {
+    throw new ApiError(409, `${usageCount} membre(s) du comité utilisent cette commission. Réassignez-les avant de la supprimer.`);
+  }
+
+  await commission.deleteOne();
+  return ok(res, { message: "Commission supprimée." });
+});
+
 module.exports = {
   dashboard,
   listReservations,
@@ -397,5 +448,9 @@ module.exports = {
   createCommitteeMember,
   updateCommitteeMember,
   deleteCommitteeMember,
+  listCommissions,
+  createCommission,
+  updateCommission,
+  deleteCommission,
   exportGuestsCsv,
 };

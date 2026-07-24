@@ -5,7 +5,15 @@ const WeddingInfo = require("../models/WeddingInfo");
 const InvitedGuest = require("../models/InvitedGuest");
 const Category = require("../models/Category");
 const CommitteeMember = require("../models/CommitteeMember");
-const { ROLES, HONOR_TABLE, GUEST_TABLES, INVITED_GUEST_CATEGORIES, COMMITTEE_SEED } = require("../config/constants");
+const Commission = require("../models/Commission");
+const {
+  ROLES,
+  HONOR_TABLE,
+  GUEST_TABLES,
+  INVITED_GUEST_CATEGORIES,
+  COMMITTEE_SEED,
+  COMMITTEE_COMMISSIONS,
+} = require("../config/constants");
 const { adminEmail, adminPassword, adminName } = require("../config/env");
 
 async function seedAdmin() {
@@ -155,12 +163,21 @@ async function seedCommittee() {
   console.log(`[seed] ${COMMITTEE_SEED.length} membres du comité d'organisation créés`);
 }
 
+async function seedCommissions() {
+  const count = await Commission.countDocuments();
+  if (count > 0) return;
+
+  await Commission.create(COMMITTEE_COMMISSIONS.map((nom) => ({ nom })));
+  console.log(`[seed] ${COMMITTEE_COMMISSIONS.length} commissions créées`);
+}
+
 async function runSeed() {
   await seedAdmin();
   await seedTables();
   await seedWeddingInfo();
   await seedCategories();
   await seedInvitedGuests();
+  await seedCommissions();
   await seedCommittee();
 }
 
