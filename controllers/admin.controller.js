@@ -203,11 +203,15 @@ const deleteGuest = asyncHandler(async (req, res) => {
   const guest = await User.findOneAndDelete({ _id: req.params.id, role: ROLES.GUEST });
   if (!guest) throw new ApiError(404, "Invité introuvable.");
 
-  const activeReservation = await Reservation.findOneAndDelete({
+  const activeReservations = await Reservation.find({
     guest: guest._id,
     status: { $in: ACTIVE_STATUSES },
   });
-  if (activeReservation) emitSeatUpdated(activeReservation.table);
+  if (activeReservations.length) {
+    await Reservation.deleteMany({ _id: { $in: activeReservations.map((r) => r._id) } });
+    const tableIds = new Set(activeReservations.map((r) => r.table.toString()));
+    for (const tableId of tableIds) emitSeatUpdated(tableId);
+  }
 
   return ok(res, { message: "Invité supprimé." });
 });
