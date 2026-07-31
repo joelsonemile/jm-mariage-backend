@@ -134,10 +134,15 @@ const listGuests = asyncHandler(async (req, res) => {
 
   const guests = await User.find(filter).sort({ createdAt: -1 });
   const reservations = await Reservation.find({ status: { $in: ACTIVE_STATUSES } }).populate("table", "name");
-  const byGuest = new Map(reservations.map((r) => [r.guest.toString(), r]));
+  const byGuest = new Map();
+  for (const r of reservations) {
+    const key = r.guest.toString();
+    if (!byGuest.has(key)) byGuest.set(key, []);
+    byGuest.get(key).push(r);
+  }
 
   const result = guests.map((g) => {
-    const reservation = byGuest.get(g._id.toString());
+    const guestReservations = byGuest.get(g._id.toString()) || [];
     return {
       id: g._id,
       fullName: g.fullName,
@@ -145,9 +150,13 @@ const listGuests = asyncHandler(async (req, res) => {
       phone: g.phone,
       linkToCouple: g.linkToCouple,
       rsvpStatus: g.rsvpStatus,
-      reservation: reservation
-        ? { id: reservation._id, tableName: reservation.table.name, seatNumber: reservation.seatNumber, status: reservation.status }
-        : null,
+      groupSize: g.groupSize,
+      reservations: guestReservations.map((r) => ({
+        id: r._id,
+        tableName: r.table.name,
+        seatNumber: r.seatNumber,
+        status: r.status,
+      })),
     };
   });
 
@@ -225,7 +234,7 @@ const listInvitedGuests = asyncHandler(async (req, res) => {
 });
 
 const createInvitedGuest = asyncHandler(async (req, res) => {
-  const { nom, prenom, telephone, categorie } = req.body;
+  const { nom, prenom, telephone, categorie, nombreAccompagnants } = req.body;
   if (!nom && !prenom) throw new ApiError(400, "Nom ou prénom requis.");
 
   const invitedGuest = await InvitedGuest.create({
@@ -233,13 +242,14 @@ const createInvitedGuest = asyncHandler(async (req, res) => {
     prenom: prenom || "",
     telephone: telephone || "",
     categorie: categorie || "Autres",
+    nombreAccompagnants: Number(nombreAccompagnants) || 0,
   });
 
   return ok(res, { invitedGuest }, 201);
 });
 
 const updateInvitedGuest = asyncHandler(async (req, res) => {
-  const { nom, prenom, telephone, categorie } = req.body;
+  const { nom, prenom, telephone, categorie, nombreAccompagnants } = req.body;
   const invitedGuest = await InvitedGuest.findById(req.params.id);
   if (!invitedGuest) throw new ApiError(404, "Invité attendu introuvable.");
 
@@ -247,6 +257,7 @@ const updateInvitedGuest = asyncHandler(async (req, res) => {
   if (prenom !== undefined) invitedGuest.prenom = prenom;
   if (telephone !== undefined) invitedGuest.telephone = telephone;
   if (categorie !== undefined) invitedGuest.categorie = categorie;
+  if (nombreAccompagnants !== undefined) invitedGuest.nombreAccompagnants = Number(nombreAccompagnants) || 0;
 
   await invitedGuest.save();
   return ok(res, { invitedGuest });
@@ -312,20 +323,35 @@ const deleteCategory = asyncHandler(async (req, res) => {
 const exportGuestsCsv = asyncHandler(async (req, res) => {
   const guests = await User.find({ role: ROLES.GUEST });
   const reservations = await Reservation.find({ status: { $in: ACTIVE_STATUSES } }).populate("table", "name");
-  const byGuest = new Map(reservations.map((r) => [r.guest.toString(), r]));
+  const byGuest = new Map();
+  for (const r of reservations) {
+    const key = r.guest.toString();
+    if (!byGuest.has(key)) byGuest.set(key, []);
+    byGuest.get(key).push(r);
+  }
 
-  const rows = guests.map((g) => {
-    const r = byGuest.get(g._id.toString());
-    return {
+  // Une ligne par réservation (un invité peut désormais en avoir plusieurs) ;
+  // les invités sans réservation gardent une seule ligne avec les champs vides.
+  const rows = guests.flatMap((g) => {
+    const guestReservations = byGuest.get(g._id.toString()) || [];
+    const base = {
       fullName: g.fullName,
       email: g.email,
       phone: g.phone,
       linkToCouple: g.linkToCouple,
       rsvpStatus: g.rsvpStatus,
-      tableName: r ? r.table.name : "",
-      seatNumber: r ? r.seatNumber : "",
-      reservationStatus: r ? r.status : "Aucune réservation",
     };
+
+    if (!guestReservations.length) {
+      return [{ ...base, tableName: "", seatNumber: "", reservationStatus: "Aucune réservation" }];
+    }
+
+    return guestReservations.map((r) => ({
+      ...base,
+      tableName: r.table.name,
+      seatNumber: r.seatNumber,
+      reservationStatus: r.status,
+    }));
   });
 
   const csv = exportService.guestsToCsv(rows);

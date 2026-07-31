@@ -29,15 +29,8 @@ reservationSchema.index(
   }
 );
 
-// Un invité ne peut avoir qu'une seule réservation active (en attente ou validée) à la fois.
-reservationSchema.index(
-  { guest: 1 },
-  {
-    unique: true,
-    partialFilterExpression: {
-      status: { $in: [RESERVATION_STATUS.PENDING, RESERVATION_STATUS.VALIDATED] },
-    },
-  }
-);
+// Un invité peut réserver plusieurs places (jusqu'à son "groupSize" déclaré,
+// vérifié côté service) — donc pas d'unicité sur `guest` seul ici.
+reservationSchema.index({ guest: 1, status: 1 });
 
 module.exports = mongoose.model("Reservation", reservationSchema);

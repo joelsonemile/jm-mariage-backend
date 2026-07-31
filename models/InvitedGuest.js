@@ -6,6 +6,8 @@ const invitedGuestSchema = new mongoose.Schema(
     prenom: { type: String, default: "" },
     telephone: { type: String, default: "" },
     categorie: { type: String, default: "Autres" },
+    // Nombre de personnes que cet invité peut amener avec lui (hors lui-même).
+    nombreAccompagnants: { type: Number, default: 0, min: 0 },
   },
   { timestamps: true }
 );

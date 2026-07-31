@@ -16,6 +16,7 @@ function toPublicUser(user) {
     linkToCouple: user.linkToCouple,
     profilePhoto: user.profilePhoto,
     rsvpStatus: user.rsvpStatus,
+    groupSize: user.groupSize,
   };
 }
 

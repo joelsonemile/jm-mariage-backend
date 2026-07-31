@@ -1,10 +1,11 @@
 const Reservation = require("../models/Reservation");
-const Table = require("../models/Table");
 const asyncHandler = require("../utils/asyncHandler");
 const { ApiError, ok } = require("../utils/apiResponse");
 const { RESERVATION_STATUS } = require("../config/constants");
 const reservationService = require("../services/reservation.service");
 const qrcodeService = require("../services/qrcode.service");
+
+const ACTIVE_STATUSES = [RESERVATION_STATUS.PENDING, RESERVATION_STATUS.VALIDATED];
 
 const create = asyncHandler(async (req, res) => {
   const { tableId, seatNumber } = req.body;
@@ -20,33 +21,43 @@ const create = asyncHandler(async (req, res) => {
 });
 
 const getMine = asyncHandler(async (req, res) => {
-  const reservation = await Reservation.findOne({
+  const reservations = await Reservation.find({
     guest: req.user._id,
-    status: { $in: [RESERVATION_STATUS.PENDING, RESERVATION_STATUS.VALIDATED] },
-  }).populate("table", "name description");
+    status: { $in: ACTIVE_STATUSES },
+  })
+    .sort({ createdAt: 1 })
+    .populate("table", "name description");
 
-  if (!reservation) return ok(res, { reservation: null });
+  const tableIds = reservations.map((r) => r.table._id);
+  const tableMatesDocs = tableIds.length
+    ? await Reservation.find({
+        table: { $in: tableIds },
+        status: { $in: ACTIVE_STATUSES },
+        guest: { $ne: req.user._id },
+      }).populate("guest", "fullName")
+    : [];
 
-  // Prénoms des autres invités de la même table (respect de la vie privée : prénom uniquement).
-  const tableMates = await Reservation.find({
-    table: reservation.table._id,
-    status: { $in: [RESERVATION_STATUS.PENDING, RESERVATION_STATUS.VALIDATED] },
-    guest: { $ne: req.user._id },
-  }).populate("guest", "fullName");
+  const tableMatesByTable = new Map();
+  for (const r of tableMatesDocs) {
+    const key = r.table.toString();
+    if (!tableMatesByTable.has(key)) tableMatesByTable.set(key, []);
+    tableMatesByTable.get(key).push(r.guest.fullName.split(" ")[0]);
+  }
 
   return ok(res, {
-    reservation: {
-      id: reservation._id,
-      status: reservation.status,
-      seatNumber: reservation.seatNumber,
-      table: reservation.table,
-    },
-    tableMates: tableMates.map((r) => r.guest.fullName.split(" ")[0]),
+    groupSize: req.user.groupSize,
+    reservations: reservations.map((r) => ({
+      id: r._id,
+      status: r.status,
+      seatNumber: r.seatNumber,
+      table: r.table,
+      tableMates: tableMatesByTable.get(r.table._id.toString()) || [],
+    })),
   });
 });
 
 const cancel = asyncHandler(async (req, res) => {
-  await reservationService.cancelActiveReservation(req.user._id);
+  await reservationService.cancelReservation(req.user._id, req.params.id);
   return ok(res, { message: "Réservation annulée." });
 });
 
@@ -56,6 +67,7 @@ const change = asyncHandler(async (req, res) => {
 
   const reservation = await reservationService.changeReservation({
     guestId: req.user._id,
+    reservationId: req.params.id,
     tableId,
     seatNumber,
   });
@@ -64,12 +76,13 @@ const change = asyncHandler(async (req, res) => {
 
 const ticket = asyncHandler(async (req, res) => {
   const reservation = await Reservation.findOne({
+    _id: req.params.id,
     guest: req.user._id,
     status: RESERVATION_STATUS.VALIDATED,
   }).populate("table", "name");
 
   if (!reservation) {
-    throw new ApiError(403, "Votre réservation n'est pas encore validée par l'administrateur.");
+    throw new ApiError(403, "Cette réservation n'est pas (encore) validée par l'administrateur.");
   }
 
   const qrDataUrl = await qrcodeService.generateQrDataUrl(reservation._id);

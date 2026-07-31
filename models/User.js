@@ -11,6 +11,8 @@ const userSchema = new mongoose.Schema(
     linkToCouple: { type: String, enum: LINKS_TO_COUPLE, default: "Autres" },
     profilePhoto: { type: String, default: null },
     rsvpStatus: { type: String, enum: Object.values(RSVP_STATUS), default: RSVP_STATUS.PENDING },
+    // Nombre de places que ce compte souhaite réserver (lui-même inclus).
+    groupSize: { type: Number, default: 1, min: 1 },
     resetPasswordToken: { type: String, select: false },
     resetPasswordExpires: { type: Date, select: false },
   },

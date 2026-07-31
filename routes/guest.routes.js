@@ -6,5 +6,6 @@ const upload = require("../middleware/upload.middleware");
 router.use(requireAuth);
 router.put("/me", upload.single("profilePhoto"), guestController.updateProfile);
 router.put("/me/rsvp", guestController.updateRsvp);
+router.put("/me/group-size", guestController.updateGroupSize);
 
 module.exports = router;
