@@ -7,6 +7,7 @@ router.post("/", reservationController.create);
 router.get("/me", reservationController.getMine);
 router.delete("/:id", reservationController.cancel);
 router.put("/:id/change", reservationController.change);
+router.put("/:id/companion-name", reservationController.updateCompanionName);
 router.get("/:id/ticket", reservationController.ticket);
 
 module.exports = router;

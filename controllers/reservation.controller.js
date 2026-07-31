@@ -8,13 +8,14 @@ const qrcodeService = require("../services/qrcode.service");
 const ACTIVE_STATUSES = [RESERVATION_STATUS.PENDING, RESERVATION_STATUS.VALIDATED];
 
 const create = asyncHandler(async (req, res) => {
-  const { tableId, seatNumber } = req.body;
+  const { tableId, seatNumber, companionName } = req.body;
   if (!tableId || !seatNumber) throw new ApiError(400, "Table et numéro de place requis.");
 
   const reservation = await reservationService.createReservation({
     guestId: req.user._id,
     tableId,
     seatNumber,
+    companionName,
   });
 
   return ok(res, { reservation }, 201);
@@ -41,7 +42,7 @@ const getMine = asyncHandler(async (req, res) => {
   for (const r of tableMatesDocs) {
     const key = r.table.toString();
     if (!tableMatesByTable.has(key)) tableMatesByTable.set(key, []);
-    tableMatesByTable.get(key).push(r.guest.fullName.split(" ")[0]);
+    tableMatesByTable.get(key).push(r.companionName || r.guest.fullName.split(" ")[0]);
   }
 
   return ok(res, {
@@ -51,6 +52,7 @@ const getMine = asyncHandler(async (req, res) => {
       status: r.status,
       seatNumber: r.seatNumber,
       table: r.table,
+      companionName: r.companionName || "",
       tableMates: tableMatesByTable.get(r.table._id.toString()) || [],
     })),
   });
@@ -74,6 +76,19 @@ const change = asyncHandler(async (req, res) => {
   return ok(res, { reservation });
 });
 
+const updateCompanionName = asyncHandler(async (req, res) => {
+  const reservation = await Reservation.findOne({
+    _id: req.params.id,
+    guest: req.user._id,
+    status: { $in: ACTIVE_STATUSES },
+  });
+  if (!reservation) throw new ApiError(404, "Réservation introuvable.");
+
+  reservation.companionName = (req.body.companionName || "").trim();
+  await reservation.save();
+  return ok(res, { reservation });
+});
+
 const ticket = asyncHandler(async (req, res) => {
   const reservation = await Reservation.findOne({
     _id: req.params.id,
@@ -93,4 +108,4 @@ const ticket = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = { create, getMine, cancel, change, ticket };
+module.exports = { create, getMine, cancel, change, ticket, updateCompanionName };

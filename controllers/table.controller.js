@@ -60,7 +60,7 @@ const getTable = asyncHandler(async (req, res) => {
     return {
       seatNumber,
       status: isMine ? "mine" : "taken",
-      guestFirstName: isMine ? null : reservation.guest.fullName.split(" ")[0],
+      guestFirstName: isMine ? null : reservation.companionName || reservation.guest.fullName.split(" ")[0],
     };
   });
 

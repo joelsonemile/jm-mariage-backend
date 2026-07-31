@@ -81,7 +81,7 @@ const deleteReservation = asyncHandler(async (req, res) => {
 });
 
 const createReservationManual = asyncHandler(async (req, res) => {
-  const { guestId, tableId, seatNumber, status } = req.body;
+  const { guestId, tableId, seatNumber, status, companionName } = req.body;
   if (!guestId || !tableId || !seatNumber) throw new ApiError(400, "Invité, table et place requis.");
 
   let reservation;
@@ -90,6 +90,7 @@ const createReservationManual = asyncHandler(async (req, res) => {
       guest: guestId,
       table: tableId,
       seatNumber,
+      companionName: (companionName || "").trim(),
       status: status === RESERVATION_STATUS.VALIDATED ? RESERVATION_STATUS.VALIDATED : RESERVATION_STATUS.PENDING,
       validatedAt: status === RESERVATION_STATUS.VALIDATED ? new Date() : null,
     });
@@ -156,6 +157,7 @@ const listGuests = asyncHandler(async (req, res) => {
         tableName: r.table.name,
         seatNumber: r.seatNumber,
         status: r.status,
+        companionName: r.companionName || "",
       })),
     };
   });
@@ -347,7 +349,7 @@ const exportGuestsCsv = asyncHandler(async (req, res) => {
     };
 
     if (!guestReservations.length) {
-      return [{ ...base, tableName: "", seatNumber: "", reservationStatus: "Aucune réservation" }];
+      return [{ ...base, tableName: "", seatNumber: "", reservationStatus: "Aucune réservation", companionName: "" }];
     }
 
     return guestReservations.map((r) => ({
@@ -355,6 +357,7 @@ const exportGuestsCsv = asyncHandler(async (req, res) => {
       tableName: r.table.name,
       seatNumber: r.seatNumber,
       reservationStatus: r.status,
+      companionName: r.companionName || "",
     }));
   });
 

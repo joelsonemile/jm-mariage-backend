@@ -12,7 +12,7 @@ const ACTIVE_STATUSES = [RESERVATION_STATUS.PENDING, RESERVATION_STATUS.VALIDATE
 // protection (vérification applicative + index unique partiel Mongo sur
 // {table, seatNumber}) empêche deux invités de valider la même place en même
 // temps : si l'insertion échoue avec le code 11000, la place vient d'être prise.
-async function createReservation({ guestId, tableId, seatNumber }) {
+async function createReservation({ guestId, tableId, seatNumber, companionName }) {
   const table = await Table.findById(tableId);
   if (!table) throw new ApiError(404, "Table introuvable.");
   if (table.isHonorTable) throw new ApiError(403, "La Table d'Honneur n'est pas réservable.");
@@ -38,6 +38,7 @@ async function createReservation({ guestId, tableId, seatNumber }) {
       guest: guestId,
       table: tableId,
       seatNumber,
+      companionName: (companionName || "").trim(),
       status: RESERVATION_STATUS.PENDING,
     });
   } catch (err) {
@@ -70,8 +71,8 @@ async function cancelReservation(guestId, reservationId) {
 // Change de place pour une réservation précise : annule l'ancienne puis en
 // recrée une nouvelle, toujours protégée par les mêmes contraintes d'unicité.
 async function changeReservation({ guestId, reservationId, tableId, seatNumber }) {
-  await cancelReservation(guestId, reservationId);
-  return createReservation({ guestId, tableId, seatNumber });
+  const previous = await cancelReservation(guestId, reservationId);
+  return createReservation({ guestId, tableId, seatNumber, companionName: previous.companionName });
 }
 
 module.exports = { createReservation, cancelReservation, changeReservation };

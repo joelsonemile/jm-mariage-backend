@@ -10,6 +10,7 @@ function guestsToCsv(rows) {
       { label: "RSVP", value: "rsvpStatus" },
       { label: "Table", value: "tableName" },
       { label: "Place", value: "seatNumber" },
+      { label: "Accompagnant", value: "companionName" },
       { label: "Statut réservation", value: "reservationStatus" },
     ],
   });

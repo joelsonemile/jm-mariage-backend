@@ -6,6 +6,9 @@ const reservationSchema = new mongoose.Schema(
     guest: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     table: { type: mongoose.Schema.Types.ObjectId, ref: "Table", required: true },
     seatNumber: { type: Number, required: true },
+    // Optionnel : nom de la personne qui occupe réellement cette place quand le
+    // compte réserve pour plusieurs invités (sinon, c'est le titulaire du compte).
+    companionName: { type: String, default: "", trim: true },
     status: {
       type: String,
       enum: Object.values(RESERVATION_STATUS),
