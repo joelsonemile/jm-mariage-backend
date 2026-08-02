@@ -394,12 +394,24 @@ const updateCommitteeMember = asyncHandler(async (req, res) => {
   const committeeMember = await CommitteeMember.findById(req.params.id);
   if (!committeeMember) throw new ApiError(404, "Membre du comité introuvable.");
 
+  const previousCommission = committeeMember.commission;
+
   if (nom !== undefined) committeeMember.nom = nom;
   if (role !== undefined) committeeMember.role = role;
   if (description !== undefined) committeeMember.description = description;
   if (commission !== undefined) committeeMember.commission = commission;
 
   await committeeMember.save();
+
+  // Si ce membre quitte la commission dont il était le responsable, on retire
+  // la désignation plutôt que de laisser une référence invalide.
+  if (commission !== undefined && previousCommission && previousCommission !== commission) {
+    await Commission.updateOne(
+      { nom: previousCommission, responsable: committeeMember._id },
+      { responsable: null }
+    );
+  }
+
   return ok(res, { committeeMember });
 });
 
@@ -407,11 +419,13 @@ const deleteCommitteeMember = asyncHandler(async (req, res) => {
   const committeeMember = await CommitteeMember.findByIdAndDelete(req.params.id);
   if (!committeeMember) throw new ApiError(404, "Membre du comité introuvable.");
 
+  await Commission.updateOne({ responsable: committeeMember._id }, { responsable: null });
+
   return ok(res, { message: "Membre du comité supprimé." });
 });
 
 const listCommissions = asyncHandler(async (req, res) => {
-  const commissions = await Commission.find().sort({ nom: 1 });
+  const commissions = await Commission.find().sort({ nom: 1 }).populate("responsable", "nom role");
   return ok(res, { commissions });
 });
 
@@ -428,22 +442,46 @@ const createCommission = asyncHandler(async (req, res) => {
 
 const updateCommission = asyncHandler(async (req, res) => {
   const { nom } = req.body;
-  if (!nom) throw new ApiError(400, "Nom de commission requis.");
-
   const commission = await Commission.findById(req.params.id);
   if (!commission) throw new ApiError(404, "Commission introuvable.");
 
-  const existing = await Commission.findOne({ _id: { $ne: commission._id }, nom: new RegExp(`^${nom}$`, "i") });
-  if (existing) throw new ApiError(409, "Cette commission existe déjà.");
+  if (nom !== undefined) {
+    if (!nom) throw new ApiError(400, "Nom de commission requis.");
+    const existing = await Commission.findOne({ _id: { $ne: commission._id }, nom: new RegExp(`^${nom}$`, "i") });
+    if (existing) throw new ApiError(409, "Cette commission existe déjà.");
 
-  const previousName = commission.nom;
-  commission.nom = nom;
-  await commission.save();
-
-  if (previousName !== nom) {
-    await CommitteeMember.updateMany({ commission: previousName }, { commission: nom });
+    const previousName = commission.nom;
+    commission.nom = nom;
+    if (previousName !== nom) {
+      await CommitteeMember.updateMany({ commission: previousName }, { commission: nom });
+    }
   }
 
+  await commission.save();
+  await commission.populate("responsable", "nom role");
+  return ok(res, { commission });
+});
+
+// Désigne (ou retire, si committeeMemberId est vide) le responsable principal
+// d'une commission — le "comité" de cette commission au sens du cahier des charges.
+const setCommissionResponsable = asyncHandler(async (req, res) => {
+  const { committeeMemberId } = req.body;
+  const commission = await Commission.findById(req.params.id);
+  if (!commission) throw new ApiError(404, "Commission introuvable.");
+
+  if (!committeeMemberId) {
+    commission.responsable = null;
+  } else {
+    const member = await CommitteeMember.findById(committeeMemberId);
+    if (!member) throw new ApiError(404, "Membre introuvable.");
+    if (member.commission !== commission.nom) {
+      throw new ApiError(400, `${member.nom} ne fait pas partie de la commission ${commission.nom}.`);
+    }
+    commission.responsable = member._id;
+  }
+
+  await commission.save();
+  await commission.populate("responsable", "nom role");
   return ok(res, { commission });
 });
 
@@ -486,6 +524,7 @@ module.exports = {
   listCommissions,
   createCommission,
   updateCommission,
+  setCommissionResponsable,
   deleteCommission,
   exportGuestsCsv,
 };
