@@ -13,6 +13,7 @@ const { ROLES, RESERVATION_STATUS } = require("../config/constants");
 const { emitSeatUpdated } = require("../sockets");
 const emailService = require("../services/email.service");
 const exportService = require("../services/export.service");
+const pdfService = require("../services/pdf.service");
 
 const ACTIVE_STATUSES = [RESERVATION_STATUS.PENDING, RESERVATION_STATUS.VALIDATED];
 
@@ -276,6 +277,14 @@ const deleteInvitedGuest = asyncHandler(async (req, res) => {
   return ok(res, { message: "Invité attendu supprimé." });
 });
 
+const exportInvitedGuestsPdf = asyncHandler(async (req, res) => {
+  const invitedGuests = await InvitedGuest.find().sort({ categorie: 1, nom: 1, prenom: 1 });
+  const buffer = await pdfService.buildInvitedGuestsPdf(invitedGuests);
+  res.header("Content-Type", "application/pdf");
+  res.attachment("invites-attendus-jm-mariage.pdf");
+  return res.send(buffer);
+});
+
 const listCategories = asyncHandler(async (req, res) => {
   const categories = await Category.find().sort({ nom: 1 });
   return ok(res, { categories });
@@ -498,6 +507,17 @@ const deleteCommission = asyncHandler(async (req, res) => {
   return ok(res, { message: "Commission supprimée." });
 });
 
+const exportCommitteePdf = asyncHandler(async (req, res) => {
+  const [commissions, members] = await Promise.all([
+    Commission.find().sort({ nom: 1 }).populate("responsable", "nom role"),
+    CommitteeMember.find().sort({ commission: 1, ordre: 1, nom: 1 }),
+  ]);
+  const buffer = await pdfService.buildCommitteePdf(commissions, members);
+  res.header("Content-Type", "application/pdf");
+  res.attachment("comite-organisation-jm-mariage.pdf");
+  return res.send(buffer);
+});
+
 module.exports = {
   dashboard,
   listReservations,
@@ -513,6 +533,7 @@ module.exports = {
   createInvitedGuest,
   updateInvitedGuest,
   deleteInvitedGuest,
+  exportInvitedGuestsPdf,
   listCategories,
   createCategory,
   updateCategory,
@@ -526,5 +547,6 @@ module.exports = {
   updateCommission,
   setCommissionResponsable,
   deleteCommission,
+  exportCommitteePdf,
   exportGuestsCsv,
 };

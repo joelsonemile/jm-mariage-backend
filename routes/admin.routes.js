@@ -21,6 +21,7 @@ router.put("/guests/:id", adminController.updateGuest);
 router.delete("/guests/:id", adminController.deleteGuest);
 
 router.get("/invited-guests", adminController.listInvitedGuests);
+router.get("/invited-guests/pdf", adminController.exportInvitedGuestsPdf);
 router.post("/invited-guests", adminController.createInvitedGuest);
 router.put("/invited-guests/:id", adminController.updateInvitedGuest);
 router.delete("/invited-guests/:id", adminController.deleteInvitedGuest);
@@ -31,6 +32,7 @@ router.put("/categories/:id", adminController.updateCategory);
 router.delete("/categories/:id", adminController.deleteCategory);
 
 router.get("/committee", adminController.listCommitteeMembers);
+router.get("/committee/pdf", adminController.exportCommitteePdf);
 router.post("/committee", adminController.createCommitteeMember);
 router.put("/committee/:id", adminController.updateCommitteeMember);
 router.delete("/committee/:id", adminController.deleteCommitteeMember);
