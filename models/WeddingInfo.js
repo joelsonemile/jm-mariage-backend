@@ -1,13 +1,10 @@
 const mongoose = require("mongoose");
 
-const programStepSchema = new mongoose.Schema(
-  {
-    time: { type: String, required: true },
-    title: { type: String, required: true },
-    description: { type: String, default: "" },
-  },
-  { _id: false }
-);
+const programStepSchema = new mongoose.Schema({
+  time: { type: String, default: "" },
+  title: { type: String, default: "" },
+  description: { type: String, default: "" },
+});
 
 const weddingInfoSchema = new mongoose.Schema(
   {

@@ -10,6 +10,9 @@ const ACTIVE_STATUSES = [RESERVATION_STATUS.PENDING, RESERVATION_STATUS.VALIDATE
 const create = asyncHandler(async (req, res) => {
   const { tableId, seatNumber, companionName } = req.body;
   if (!tableId || !seatNumber) throw new ApiError(400, "Table et numéro de place requis.");
+  if (!companionName || !companionName.trim()) {
+    throw new ApiError(400, "Le nom de la personne pour cette place est requis.");
+  }
 
   const reservation = await reservationService.createReservation({
     guestId: req.user._id,
@@ -84,7 +87,10 @@ const updateCompanionName = asyncHandler(async (req, res) => {
   });
   if (!reservation) throw new ApiError(404, "Réservation introuvable.");
 
-  reservation.companionName = (req.body.companionName || "").trim();
+  const companionName = (req.body.companionName || "").trim();
+  if (!companionName) throw new ApiError(400, "Le nom de la personne pour cette place est requis.");
+
+  reservation.companionName = companionName;
   await reservation.save();
   return ok(res, { reservation });
 });
