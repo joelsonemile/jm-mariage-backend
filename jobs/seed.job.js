@@ -8,7 +8,6 @@ const CommitteeMember = require("../models/CommitteeMember");
 const Commission = require("../models/Commission");
 const {
   ROLES,
-  HONOR_TABLE,
   GUEST_TABLES,
   INVITED_GUEST_CATEGORIES,
   COMMITTEE_SEED,
@@ -36,8 +35,8 @@ async function seedTables() {
   const count = await Table.countDocuments();
   if (count > 0) return;
 
-  await Table.create([HONOR_TABLE, ...GUEST_TABLES]);
-  console.log(`[seed] ${1 + GUEST_TABLES.length} tables créées (Table d'Honneur + 12 tables Madagascar)`);
+  await Table.create(GUEST_TABLES);
+  console.log(`[seed] ${GUEST_TABLES.length} tables créées (Madagascar)`);
 }
 
 async function seedWeddingInfo() {
