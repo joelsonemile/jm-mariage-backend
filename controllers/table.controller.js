@@ -8,9 +8,7 @@ async function buildOccupancy(tables) {
   const reservations = await Reservation.find({
     table: { $in: tables.map((t) => t._id) },
     status: { $in: [RESERVATION_STATUS.PENDING, RESERVATION_STATUS.VALIDATED] },
-  })
-    .select("table seatNumber guest status companionName")
-    .populate("guest", "fullName");
+  }).select("table seatNumber guest status");
 
   const byTable = new Map();
   for (const r of reservations) {
@@ -27,7 +25,7 @@ const listTables = asyncHandler(async (req, res) => {
 
   const result = tables.map((t) => {
     const reserved = occupancy.get(t._id.toString()) || [];
-    const isMine = reserved.some((r) => r.guest._id.toString() === req.user._id.toString());
+    const isMine = reserved.some((r) => r.guest.toString() === req.user._id.toString());
     return {
       id: t._id,
       name: t.name,
@@ -38,9 +36,6 @@ const listTables = asyncHandler(async (req, res) => {
       reservedCount: reserved.length,
       freeCount: t.totalSeats - reserved.length,
       isMyTable: isMine,
-      // Noms affichés en badge sur la carte de table, pour savoir avec qui on
-      // partagera la table avant même de réserver.
-      guestNames: reserved.map((r) => r.companionName || r.guest.fullName.split(" ")[0]),
     };
   });
 
