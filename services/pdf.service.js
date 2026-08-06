@@ -236,4 +236,106 @@ function buildCommitteePdf(commissions, members) {
   });
 }
 
-module.exports = { buildInvitedGuestsPdf, buildCommitteePdf };
+// Rapport "carte d'invitation" pour le programme du jour J : pensé pour être
+// beau et lisible (typographie soignée, accents dorés, timeline en points
+// reliés) plutôt qu'un simple export tabulaire comme les deux rapports ci-dessus.
+function buildProgramPdf(info) {
+  const content = [];
+
+  content.push({
+    canvas: [{ type: "rect", x: 0, y: 0, w: 515, h: 2, color: GOLD }],
+    margin: [0, 0, 0, 28],
+  });
+
+  content.push({ text: "JOELSON  &  MARJORIE", style: "programBrand", alignment: "center" });
+  content.push({ text: "Programme du mariage", style: "programTitle", alignment: "center" });
+  if (info.dateLabel) {
+    content.push({ text: info.dateLabel, style: "programDate", alignment: "center" });
+  }
+
+  const infoItems = [];
+  if (info.location) infoItems.push({ label: "LIEU", value: info.location });
+  if (info.ceremonyTime) infoItems.push({ label: "CÉRÉMONIE", value: info.ceremonyTime });
+  if (info.dressCode) infoItems.push({ label: "TENUE", value: info.dressCode });
+
+  if (infoItems.length) {
+    content.push({
+      columns: infoItems.map((item) => ({
+        stack: [
+          { text: item.label, style: "infoLabel", alignment: "center" },
+          { text: item.value, style: "infoValue", alignment: "center" },
+        ],
+      })),
+      columnGap: 16,
+      margin: [40, 26, 40, 26],
+    });
+  }
+
+  content.push({
+    canvas: [{ type: "line", x1: 157, y1: 0, x2: 358, y2: 0, lineWidth: 1, lineColor: GOLD }],
+    margin: [0, 0, 0, 26],
+  });
+
+  const steps = info.programDetailed || [];
+  if (steps.length) {
+    content.push({ text: "DÉROULÉ DE LA JOURNÉE", style: "sectionLabel", alignment: "center", margin: [0, 0, 0, 20] });
+
+    for (const step of steps) {
+      content.push({
+        columns: [
+          { width: 60, text: step.time || "", style: "stepTime", alignment: "right" },
+          {
+            width: 16,
+            stack: [{ canvas: [{ type: "ellipse", x: 8, y: 6, r1: 3.5, r2: 3.5, color: GOLD }] }],
+          },
+          {
+            width: "*",
+            stack: [
+              { text: step.title || "Sans titre", style: "stepTitle" },
+              step.description ? { text: step.description, style: "stepDescription" } : null,
+            ].filter(Boolean),
+          },
+        ],
+        columnGap: 10,
+        margin: [0, 0, 0, 16],
+      });
+    }
+  } else {
+    content.push({ text: "Le programme détaillé sera bientôt disponible.", style: "emptyNote", alignment: "center" });
+  }
+
+  if (info.quote) {
+    content.push({
+      canvas: [{ type: "line", x1: 157, y1: 0, x2: 358, y2: 0, lineWidth: 1, lineColor: GOLD }],
+      margin: [0, 10, 0, 20],
+    });
+    content.push({ text: `«  ${info.quote}  »`, style: "quote", alignment: "center" });
+    if (info.quoteSource) {
+      content.push({ text: `— ${info.quoteSource}`, style: "quoteSource", alignment: "center" });
+    }
+  }
+
+  return docToBuffer({
+    pageSize: "A4",
+    pageMargins: [50, 60, 50, 60],
+    footer: reportFooter,
+    content,
+    styles: {
+      ...styles,
+      programBrand: { fontSize: 10, bold: true, color: MUTED, characterSpacing: 3 },
+      programTitle: { fontSize: 26, bold: true, color: DARK, margin: [0, 8, 0, 4] },
+      programDate: { fontSize: 12, italics: true, color: GOLD },
+      infoLabel: { fontSize: 8, bold: true, color: MUTED, characterSpacing: 1, margin: [0, 0, 0, 4] },
+      infoValue: { fontSize: 11, bold: true, color: DARK },
+      sectionLabel: { fontSize: 10, bold: true, color: GOLD, characterSpacing: 3 },
+      stepTime: { fontSize: 10, bold: true, color: GOLD },
+      stepTitle: { fontSize: 12, bold: true, color: DARK },
+      stepDescription: { fontSize: 9, color: MUTED, margin: [0, 2, 0, 0] },
+      quote: { fontSize: 12, italics: true, color: DARK },
+      quoteSource: { fontSize: 9, color: MUTED, margin: [0, 6, 0, 0] },
+    },
+    defaultStyle: { font: "Roboto", fontSize: 10, color: DARK },
+  });
+}
+
+module.exports = { buildInvitedGuestsPdf, buildCommitteePdf, buildProgramPdf };

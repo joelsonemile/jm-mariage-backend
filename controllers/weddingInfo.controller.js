@@ -1,10 +1,21 @@
 const WeddingInfo = require("../models/WeddingInfo");
 const asyncHandler = require("../utils/asyncHandler");
 const { ApiError, ok } = require("../utils/apiResponse");
+const pdfService = require("../services/pdf.service");
 
 const getInfo = asyncHandler(async (req, res) => {
   const info = await WeddingInfo.findOne();
   return ok(res, { info });
+});
+
+const exportProgramPdf = asyncHandler(async (req, res) => {
+  const info = await WeddingInfo.findOne();
+  if (!info) throw new ApiError(404, "Informations du mariage introuvables.");
+
+  const buffer = await pdfService.buildProgramPdf(info);
+  res.header("Content-Type", "application/pdf");
+  res.attachment("programme-jm-mariage.pdf");
+  return res.send(buffer);
 });
 
 const updateInfo = asyncHandler(async (req, res) => {
@@ -64,4 +75,4 @@ const deleteProgramStep = asyncHandler(async (req, res) => {
   return ok(res, { info });
 });
 
-module.exports = { getInfo, updateInfo, addProgramStep, updateProgramStep, deleteProgramStep };
+module.exports = { getInfo, updateInfo, exportProgramPdf, addProgramStep, updateProgramStep, deleteProgramStep };
