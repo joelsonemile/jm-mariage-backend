@@ -95,23 +95,35 @@ const updateCompanionName = asyncHandler(async (req, res) => {
   return ok(res, { reservation });
 });
 
-const ticket = asyncHandler(async (req, res) => {
-  const reservation = await Reservation.findOne({
-    _id: req.params.id,
+// Un seul ticket par invité, même avec plusieurs places réservées : regroupe
+// toutes les réservations validées derrière un unique QR (façon carte
+// d'embarquement famille/groupe) plutôt qu'un ticket répété par place.
+const myTicket = asyncHandler(async (req, res) => {
+  const reservations = await Reservation.find({
     guest: req.user._id,
     status: RESERVATION_STATUS.VALIDATED,
-  }).populate("table", "name");
+  })
+    .sort({ createdAt: 1 })
+    .populate("table", "name");
 
-  if (!reservation) {
-    throw new ApiError(403, "Cette réservation n'est pas (encore) validée par l'administrateur.");
+  if (!reservations.length) {
+    throw new ApiError(403, "Aucune réservation validée pour le moment.");
   }
 
-  const qrDataUrl = await qrcodeService.generateQrDataUrl(reservation._id);
+  const qrDataUrl = await qrcodeService.generateGroupQrDataUrl(
+    req.user._id,
+    reservations.map((r) => r._id)
+  );
+
   return ok(res, {
     qrDataUrl,
-    tableName: reservation.table.name,
-    seatNumber: reservation.seatNumber,
+    guestName: req.user.fullName,
+    seats: reservations.map((r) => ({
+      tableName: r.table.name,
+      seatNumber: r.seatNumber,
+      companionName: r.companionName || "",
+    })),
   });
 });
 
-module.exports = { create, getMine, cancel, change, ticket, updateCompanionName };
+module.exports = { create, getMine, cancel, change, myTicket, updateCompanionName };

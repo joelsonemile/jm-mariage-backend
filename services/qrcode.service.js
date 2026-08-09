@@ -20,4 +20,18 @@ async function generateQrBuffer(reservationId) {
   });
 }
 
-module.exports = { generateQrDataUrl, generateQrBuffer };
+// Un seul QR pour tout le ticket d'un invité, même s'il a réservé plusieurs
+// places : encode le compte et l'ensemble de ses réservations validées.
+async function generateGroupQrDataUrl(guestId, reservationIds) {
+  const payload = JSON.stringify({
+    guestId: guestId.toString(),
+    reservationIds: reservationIds.map((id) => id.toString()),
+  });
+  return QRCode.toDataURL(payload, {
+    margin: 1,
+    color: { dark: "#0A0A0A", light: "#FFFFFF" },
+    width: 320,
+  });
+}
+
+module.exports = { generateQrDataUrl, generateQrBuffer, generateGroupQrDataUrl };
