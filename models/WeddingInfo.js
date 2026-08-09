@@ -4,6 +4,9 @@ const programStepSchema = new mongoose.Schema({
   time: { type: String, default: "" },
   title: { type: String, default: "" },
   description: { type: String, default: "" },
+  // Regroupe les étapes par grand moment (ex: "Journée" / "Soirée") pour un
+  // affichage en actes plutôt qu'une liste plate. Vide = pas de section.
+  section: { type: String, default: "" },
 });
 
 const weddingInfoSchema = new mongoose.Schema(

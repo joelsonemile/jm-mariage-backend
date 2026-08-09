@@ -278,28 +278,54 @@ function buildProgramPdf(info) {
 
   const steps = info.programDetailed || [];
   if (steps.length) {
-    content.push({ text: "DÉROULÉ DE LA JOURNÉE", style: "sectionLabel", alignment: "center", margin: [0, 0, 0, 20] });
-
+    // Regroupe par "acte" (Journée / Soirée / ...) dans leur ordre d'apparition ;
+    // les étapes sans section tombent dans un groupe "" affiché sans double-titre
+    // quand c'est le seul groupe du programme.
+    const order = [];
+    const bySection = new Map();
     for (const step of steps) {
-      content.push({
-        columns: [
-          { width: 60, text: step.time || "", style: "stepTime", alignment: "right" },
-          {
-            width: 16,
-            stack: [{ canvas: [{ type: "ellipse", x: 8, y: 6, r1: 3.5, r2: 3.5, color: GOLD }] }],
-          },
-          {
-            width: "*",
-            stack: [
-              { text: step.title || "Sans titre", style: "stepTitle" },
-              step.description ? { text: step.description, style: "stepDescription" } : null,
-            ].filter(Boolean),
-          },
-        ],
-        columnGap: 10,
-        margin: [0, 0, 0, 16],
-      });
+      const key = step.section || "";
+      if (!bySection.has(key)) {
+        bySection.set(key, []);
+        order.push(key);
+      }
+      bySection.get(key).push(step);
     }
+
+    order.forEach((sectionName, idx) => {
+      if (idx > 0) {
+        content.push({
+          canvas: [{ type: "line", x1: 157, y1: 0, x2: 358, y2: 0, lineWidth: 0.5, lineColor: "#e5d6ae" }],
+          margin: [0, 6, 0, 20],
+        });
+      }
+
+      const label = sectionName || (order.length === 1 ? "DÉROULÉ DE LA JOURNÉE" : "");
+      if (label) {
+        content.push({ text: label.toUpperCase(), style: "sectionLabel", alignment: "center", margin: [0, 0, 0, 18] });
+      }
+
+      for (const step of bySection.get(sectionName)) {
+        content.push({
+          columns: [
+            { width: 60, text: step.time || "", style: "stepTime", alignment: "right" },
+            {
+              width: 16,
+              stack: [{ canvas: [{ type: "ellipse", x: 8, y: 6, r1: 3.5, r2: 3.5, color: GOLD }] }],
+            },
+            {
+              width: "*",
+              stack: [
+                { text: step.title || "Sans titre", style: "stepTitle" },
+                step.description ? { text: step.description, style: "stepDescription" } : null,
+              ].filter(Boolean),
+            },
+          ],
+          columnGap: 10,
+          margin: [0, 0, 0, 16],
+        });
+      }
+    });
   } else {
     content.push({ text: "Le programme détaillé sera bientôt disponible.", style: "emptyNote", alignment: "center" });
   }
