@@ -277,6 +277,15 @@ const deleteInvitedGuest = asyncHandler(async (req, res) => {
   return ok(res, { message: "Invité attendu supprimé." });
 });
 
+const markInvitationSent = asyncHandler(async (req, res) => {
+  const invitedGuest = await InvitedGuest.findById(req.params.id);
+  if (!invitedGuest) throw new ApiError(404, "Invité attendu introuvable.");
+
+  invitedGuest.invitationSentAt = req.body.sent === false ? null : new Date();
+  await invitedGuest.save();
+  return ok(res, { invitedGuest });
+});
+
 const exportInvitedGuestsPdf = asyncHandler(async (req, res) => {
   const invitedGuests = await InvitedGuest.find().sort({ categorie: 1, nom: 1, prenom: 1 });
   const buffer = await pdfService.buildInvitedGuestsPdf(invitedGuests);
@@ -533,6 +542,7 @@ module.exports = {
   createInvitedGuest,
   updateInvitedGuest,
   deleteInvitedGuest,
+  markInvitationSent,
   exportInvitedGuestsPdf,
   listCategories,
   createCategory,

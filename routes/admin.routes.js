@@ -24,6 +24,7 @@ router.get("/invited-guests", adminController.listInvitedGuests);
 router.get("/invited-guests/pdf", adminController.exportInvitedGuestsPdf);
 router.post("/invited-guests", adminController.createInvitedGuest);
 router.put("/invited-guests/:id", adminController.updateInvitedGuest);
+router.put("/invited-guests/:id/invitation-sent", adminController.markInvitationSent);
 router.delete("/invited-guests/:id", adminController.deleteInvitedGuest);
 
 router.get("/categories", adminController.listCategories);
