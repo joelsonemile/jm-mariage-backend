@@ -131,6 +131,19 @@ const assignInvitedGuestToSeat = asyncHandler(async (req, res) => {
     await invitedGuest.save();
   }
 
+  // Un même invité attendu ne peut pas occuper 2 places à la fois — s'il en a
+  // déjà une, il faut la déplacer (bouton "Déplacer") plutôt qu'en créer une autre.
+  const existing = await Reservation.findOne({
+    guest: userId,
+    status: { $in: ACTIVE_STATUSES },
+  }).populate("table", "name");
+  if (existing) {
+    throw new ApiError(
+      409,
+      `${invitedGuest.prenom} ${invitedGuest.nom} occupe déjà la place #${existing.seatNumber} à la table ${existing.table.name}. Utilisez "Déplacer" pour la changer.`
+    );
+  }
+
   let reservation;
   try {
     reservation = await Reservation.create({
