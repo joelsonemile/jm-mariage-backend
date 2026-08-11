@@ -20,7 +20,8 @@ async function buildOccupancy(tables) {
 }
 
 const listTables = asyncHandler(async (req, res) => {
-  const tables = await Table.find().sort({ order: 1 });
+  const isAdmin = req.user.role === "admin";
+  const tables = await Table.find(isAdmin ? {} : { adminOnly: { $ne: true } }).sort({ order: 1 });
   const occupancy = await buildOccupancy(tables);
 
   const result = tables.map((t) => {
@@ -31,6 +32,7 @@ const listTables = asyncHandler(async (req, res) => {
       name: t.name,
       description: t.description,
       isHonorTable: t.isHonorTable,
+      adminOnly: t.adminOnly,
       totalSeats: t.totalSeats,
       order: t.order,
       reservedCount: reserved.length,
@@ -45,6 +47,9 @@ const listTables = asyncHandler(async (req, res) => {
 const getTable = asyncHandler(async (req, res) => {
   const table = await Table.findById(req.params.id);
   if (!table) throw new ApiError(404, "Table introuvable.");
+  if (table.adminOnly && req.user.role !== "admin") {
+    throw new ApiError(403, "Cette table est réservée à l'administration.");
+  }
 
   const reservations = await Reservation.find({
     table: table._id,
@@ -57,10 +62,14 @@ const getTable = asyncHandler(async (req, res) => {
     if (!reservation) return { seatNumber, status: "available" };
 
     const isMine = reservation.guest._id.toString() === req.user._id.toString();
+    const fullName = reservation.companionName || reservation.guest.fullName;
     return {
       seatNumber,
       status: isMine ? "mine" : "taken",
-      guestFirstName: isMine ? null : reservation.companionName || reservation.guest.fullName.split(" ")[0],
+      // Le prénom (ou le nom du companion) reste affiché par défaut ; le nom
+      // complet n'est révélé qu'au clic, pour un plan de table plus discret.
+      guestFirstName: isMine ? null : fullName.split(" ")[0],
+      guestFullName: isMine ? null : fullName,
     };
   });
 
@@ -70,6 +79,7 @@ const getTable = asyncHandler(async (req, res) => {
       name: table.name,
       description: table.description,
       isHonorTable: table.isHonorTable,
+      adminOnly: table.adminOnly,
       totalSeats: table.totalSeats,
     },
     seats,

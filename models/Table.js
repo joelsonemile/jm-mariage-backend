@@ -7,6 +7,9 @@ const tableSchema = new mongoose.Schema(
     isHonorTable: { type: Boolean, default: false },
     totalSeats: { type: Number, required: true },
     order: { type: Number, default: 0 },
+    // Table réservée à l'affectation manuelle par l'admin (invités qui ne
+    // savent pas utiliser l'application) — invisible dans le plan des invités.
+    adminOnly: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

@@ -104,6 +104,53 @@ const createReservationManual = asyncHandler(async (req, res) => {
   return ok(res, { reservation }, 201);
 });
 
+// Affecte manuellement un invité de la liste "invités attendus" (sans compte,
+// typiquement une personne âgée qui ne sait pas utiliser l'application) à une
+// place — provisionne un compte User minimal la première fois, puis le réutilise.
+const assignInvitedGuestToSeat = asyncHandler(async (req, res) => {
+  const { invitedGuestId, tableId, seatNumber } = req.body;
+  if (!invitedGuestId || !tableId || !seatNumber) throw new ApiError(400, "Invité, table et place requis.");
+
+  const invitedGuest = await InvitedGuest.findById(invitedGuestId);
+  if (!invitedGuest) throw new ApiError(404, "Invité attendu introuvable.");
+
+  let userId = invitedGuest.linkedUserId;
+  if (!userId || !(await User.exists({ _id: userId }))) {
+    const fullName = `${invitedGuest.prenom} ${invitedGuest.nom}`.trim() || "Invité";
+    const temporaryPassword = crypto.randomBytes(12).toString("hex");
+    const hashed = await bcrypt.hash(temporaryPassword, 10);
+    const user = await User.create({
+      fullName,
+      email: `invite-${invitedGuest._id}@jm-mariage.local`,
+      phone: invitedGuest.telephone || "N/A",
+      password: hashed,
+      role: ROLES.GUEST,
+    });
+    userId = user._id;
+    invitedGuest.linkedUserId = userId;
+    await invitedGuest.save();
+  }
+
+  let reservation;
+  try {
+    reservation = await Reservation.create({
+      guest: userId,
+      table: tableId,
+      seatNumber,
+      status: RESERVATION_STATUS.VALIDATED,
+      validatedAt: new Date(),
+    });
+  } catch (err) {
+    if (err.code === 11000) throw new ApiError(409, "Cette place est déjà occupée.");
+    throw err;
+  }
+
+  emitSeatUpdated(tableId);
+  await reservation.populate("guest", "fullName phone email linkToCouple");
+  await reservation.populate("table", "name");
+  return ok(res, { reservation }, 201);
+});
+
 const moveReservation = asyncHandler(async (req, res) => {
   const { tableId, seatNumber } = req.body;
   const reservation = await Reservation.findById(req.params.id);
@@ -532,6 +579,7 @@ module.exports = {
   approveReservation,
   deleteReservation,
   createReservationManual,
+  assignInvitedGuestToSeat,
   moveReservation,
   listGuests,
   createGuest,

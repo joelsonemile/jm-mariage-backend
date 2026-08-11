@@ -11,6 +11,7 @@ router.get("/dashboard", adminController.dashboard);
 
 router.get("/reservations", adminController.listReservations);
 router.post("/reservations", adminController.createReservationManual);
+router.post("/reservations/assign-invited-guest", adminController.assignInvitedGuestToSeat);
 router.put("/reservations/:id/approve", adminController.approveReservation);
 router.put("/reservations/:id/move", adminController.moveReservation);
 router.delete("/reservations/:id", adminController.deleteReservation);
