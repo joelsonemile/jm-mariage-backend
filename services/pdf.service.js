@@ -276,23 +276,65 @@ function buildProgramPdf(info) {
     margin: [0, 0, 0, 26],
   });
 
+  // Regroupe une liste d'étapes par une clé (section ou sous-programme) en
+  // conservant l'ordre d'apparition — réutilisé pour les deux niveaux d'imbrication.
+  const groupByOrdered = (list, keyFn) => {
+    const order = [];
+    const byKey = new Map();
+    for (const item of list) {
+      const key = keyFn(item);
+      if (!byKey.has(key)) {
+        byKey.set(key, []);
+        order.push(key);
+      }
+      byKey.get(key).push(item);
+    }
+    return order.map((key) => ({ key, items: byKey.get(key) }));
+  };
+
+  // Regroupe par SUITE CONSÉCUTIVE (pas par fusion globale de la même clé) : un
+  // sous-programme inséré entre deux étapes "libres" doit rester à sa place
+  // chronologique plutôt que de fusionner avec un groupe "libre" antérieur.
+  const groupConsecutive = (list, keyFn) => {
+    const groups = [];
+    for (const item of list) {
+      const key = keyFn(item);
+      const last = groups[groups.length - 1];
+      if (last && last.key === key) last.items.push(item);
+      else groups.push({ key, items: [item] });
+    }
+    return groups;
+  };
+
+  const renderStepRow = (step, indent) => {
+    content.push({
+      columns: [
+        { width: 60 - indent, text: step.time || "", style: "stepTime", alignment: "right" },
+        {
+          width: 16,
+          stack: [{ canvas: [{ type: "ellipse", x: 8, y: 6, r1: 3.5, r2: 3.5, color: GOLD }] }],
+        },
+        {
+          width: "*",
+          stack: [
+            { text: step.title || "Sans titre", style: "stepTitle" },
+            step.description ? { text: step.description, style: "stepDescription" } : null,
+          ].filter(Boolean),
+        },
+      ],
+      columnGap: 10,
+      margin: [indent, 0, 0, 16],
+    });
+  };
+
   const steps = info.programDetailed || [];
   if (steps.length) {
     // Regroupe par "acte" (Journée / Soirée / ...) dans leur ordre d'apparition ;
     // les étapes sans section tombent dans un groupe "" affiché sans double-titre
     // quand c'est le seul groupe du programme.
-    const order = [];
-    const bySection = new Map();
-    for (const step of steps) {
-      const key = step.section || "";
-      if (!bySection.has(key)) {
-        bySection.set(key, []);
-        order.push(key);
-      }
-      bySection.get(key).push(step);
-    }
+    const sectionGroups = groupByOrdered(steps, (step) => step.section || "");
 
-    order.forEach((sectionName, idx) => {
+    sectionGroups.forEach(({ key: sectionName, items: sectionSteps }, idx) => {
       if (idx > 0) {
         content.push({
           canvas: [{ type: "line", x1: 157, y1: 0, x2: 358, y2: 0, lineWidth: 0.5, lineColor: "#e5d6ae" }],
@@ -300,30 +342,22 @@ function buildProgramPdf(info) {
         });
       }
 
-      const label = sectionName || (order.length === 1 ? "DÉROULÉ DE LA JOURNÉE" : "");
+      const label = sectionName || (sectionGroups.length === 1 ? "DÉROULÉ DE LA JOURNÉE" : "");
       if (label) {
         content.push({ text: label.toUpperCase(), style: "sectionLabel", alignment: "center", margin: [0, 0, 0, 18] });
       }
 
-      for (const step of bySection.get(sectionName)) {
-        content.push({
-          columns: [
-            { width: 60, text: step.time || "", style: "stepTime", alignment: "right" },
-            {
-              width: 16,
-              stack: [{ canvas: [{ type: "ellipse", x: 8, y: 6, r1: 3.5, r2: 3.5, color: GOLD }] }],
-            },
-            {
-              width: "*",
-              stack: [
-                { text: step.title || "Sans titre", style: "stepTitle" },
-                step.description ? { text: step.description, style: "stepDescription" } : null,
-              ].filter(Boolean),
-            },
-          ],
-          columnGap: 10,
-          margin: [0, 0, 0, 16],
-        });
+      // Second niveau : les étapes rattachées à un sous-programme (ex: "PROGRAMME
+      // - DINER DE MARIAGE (20h45 - 22h00)") sont détaillées sous un sous-titre
+      // dédié ; celles sans sous-programme restent directement dans la section.
+      const subGroups = groupConsecutive(sectionSteps, (step) => step.subProgram || "");
+      for (const { key: subProgramName, items: subSteps } of subGroups) {
+        if (subProgramName) {
+          content.push({ text: subProgramName, style: "subProgramLabel", margin: [0, 4, 0, 12] });
+        }
+        for (const step of subSteps) {
+          renderStepRow(step, subProgramName ? 24 : 0);
+        }
       }
     });
   } else {
@@ -354,6 +388,7 @@ function buildProgramPdf(info) {
       infoLabel: { fontSize: 8, bold: true, color: MUTED, characterSpacing: 1, margin: [0, 0, 0, 4] },
       infoValue: { fontSize: 11, bold: true, color: DARK },
       sectionLabel: { fontSize: 10, bold: true, color: GOLD, characterSpacing: 3 },
+      subProgramLabel: { fontSize: 9, bold: true, color: DARK, italics: true },
       stepTime: { fontSize: 10, bold: true, color: GOLD },
       stepTitle: { fontSize: 12, bold: true, color: DARK },
       stepDescription: { fontSize: 9, color: MUTED, margin: [0, 2, 0, 0] },

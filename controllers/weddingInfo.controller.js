@@ -31,12 +31,18 @@ const updateInfo = asyncHandler(async (req, res) => {
 // suppression est persisté immédiatement, indépendamment du bouton "Enregistrer"
 // du reste du formulaire d'infos.
 const addProgramStep = asyncHandler(async (req, res) => {
-  const { time, title, description, section } = req.body;
+  const { time, title, description, section, subProgram } = req.body;
   const info = await WeddingInfo.findOneAndUpdate(
     {},
     {
       $push: {
-        programDetailed: { time: time || "", title: title || "", description: description || "", section: section || "" },
+        programDetailed: {
+          time: time || "",
+          title: title || "",
+          description: description || "",
+          section: section || "",
+          subProgram: subProgram || "",
+        },
       },
     },
     { new: true, upsert: true, runValidators: true }
@@ -45,7 +51,7 @@ const addProgramStep = asyncHandler(async (req, res) => {
 });
 
 const updateProgramStep = asyncHandler(async (req, res) => {
-  const { time, title, description, section } = req.body;
+  const { time, title, description, section, subProgram } = req.body;
   const info = await WeddingInfo.findOne();
   if (!info) throw new ApiError(404, "Informations du mariage introuvables.");
 
@@ -56,6 +62,7 @@ const updateProgramStep = asyncHandler(async (req, res) => {
   if (title !== undefined) step.title = title;
   if (description !== undefined) step.description = description;
   if (section !== undefined) step.section = section;
+  if (subProgram !== undefined) step.subProgram = subProgram;
 
   // Les étapes existantes créées avant l'ajout des _id par étape n'en ont pas
   // encore de persisté : on force l'écriture du tableau entier pour que Mongoose

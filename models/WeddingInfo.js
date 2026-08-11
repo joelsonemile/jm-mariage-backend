@@ -7,6 +7,10 @@ const programStepSchema = new mongoose.Schema({
   // Regroupe les étapes par grand moment (ex: "Journée" / "Soirée") pour un
   // affichage en actes plutôt qu'une liste plate. Vide = pas de section.
   section: { type: String, default: "" },
+  // Sous-groupe optionnel à l'intérieur d'une section (ex: "PROGRAMME - DINER
+  // DE MARIAGE (20h45 - 22h00)") pour détailler un bloc précis du déroulé sans
+  // sortir de son acte. Vide = étape directement dans la section.
+  subProgram: { type: String, default: "" },
 });
 
 const weddingInfoSchema = new mongoose.Schema(
