@@ -239,14 +239,43 @@ function buildCommitteePdf(commissions, members) {
 // Rapport "carte d'invitation" pour le programme du jour J : pensé pour être
 // beau et lisible (typographie soignée, accents dorés, timeline en points
 // reliés) plutôt qu'un simple export tabulaire comme les deux rapports ci-dessus.
+// Regroupe une liste d'étapes par une clé (section ou sous-programme) en
+// conservant l'ordre d'apparition — réutilisé pour le niveau "section".
+function groupByOrdered(list, keyFn) {
+  const order = [];
+  const byKey = new Map();
+  for (const item of list) {
+    const key = keyFn(item);
+    if (!byKey.has(key)) {
+      byKey.set(key, []);
+      order.push(key);
+    }
+    byKey.get(key).push(item);
+  }
+  return order.map((key) => ({ key, items: byKey.get(key) }));
+}
+
+// Regroupe par SUITE CONSÉCUTIVE (pas par fusion globale de la même clé) : un
+// sous-programme inséré entre deux étapes "libres" doit rester à sa place
+// chronologique plutôt que de fusionner avec un groupe "libre" antérieur.
+function groupConsecutive(list, keyFn) {
+  const groups = [];
+  for (const item of list) {
+    const key = keyFn(item);
+    const last = groups[groups.length - 1];
+    if (last && last.key === key) last.items.push(item);
+    else groups.push({ key, items: [item] });
+  }
+  return groups;
+}
+
 function buildProgramPdf(info) {
   const content = [];
 
   content.push({
-    canvas: [{ type: "rect", x: 0, y: 0, w: 515, h: 2, color: GOLD }],
-    margin: [0, 0, 0, 28],
+    canvas: [{ type: "rect", x: 0, y: 0, w: 491, h: 1.5, color: GOLD }],
+    margin: [0, 0, 0, 12],
   });
-
   content.push({ text: "JOELSON  &  MARJORIE", style: "programBrand", alignment: "center" });
   content.push({ text: "Programme du mariage", style: "programTitle", alignment: "center" });
   if (info.dateLabel) {
@@ -266,65 +295,74 @@ function buildProgramPdf(info) {
           { text: item.value, style: "infoValue", alignment: "center" },
         ],
       })),
-      columnGap: 16,
-      margin: [40, 26, 40, 26],
+      columnGap: 14,
+      margin: [30, 12, 30, 12],
     });
   }
 
   content.push({
-    canvas: [{ type: "line", x1: 157, y1: 0, x2: 358, y2: 0, lineWidth: 1, lineColor: GOLD }],
-    margin: [0, 0, 0, 26],
+    canvas: [{ type: "line", x1: 171, y1: 0, x2: 320, y2: 0, lineWidth: 1, lineColor: GOLD }],
+    margin: [0, 0, 0, 16],
   });
 
-  // Regroupe une liste d'étapes par une clé (section ou sous-programme) en
-  // conservant l'ordre d'apparition — réutilisé pour les deux niveaux d'imbrication.
-  const groupByOrdered = (list, keyFn) => {
-    const order = [];
-    const byKey = new Map();
-    for (const item of list) {
-      const key = keyFn(item);
-      if (!byKey.has(key)) {
-        byKey.set(key, []);
-        order.push(key);
-      }
-      byKey.get(key).push(item);
-    }
-    return order.map((key) => ({ key, items: byKey.get(key) }));
-  };
-
-  // Regroupe par SUITE CONSÉCUTIVE (pas par fusion globale de la même clé) : un
-  // sous-programme inséré entre deux étapes "libres" doit rester à sa place
-  // chronologique plutôt que de fusionner avec un groupe "libre" antérieur.
-  const groupConsecutive = (list, keyFn) => {
-    const groups = [];
-    for (const item of list) {
-      const key = keyFn(item);
-      const last = groups[groups.length - 1];
-      if (last && last.key === key) last.items.push(item);
-      else groups.push({ key, items: [item] });
-    }
-    return groups;
-  };
-
-  const renderStepRow = (step, indent) => {
+  // Une étape tient sur une seule ligne fluide "• HEURE · Titre" (pas de colonnes
+  // rigides) pour bien s'accommoder d'une colonne étroite sans retour à la ligne
+  // disgracieux sur l'heure. "•" (U+2022) est utilisé plutôt que "●" (U+25CF) car
+  // seul le premier existe dans l'encodage WinAnsi des polices standard PDF.
+  const renderStepRow = (step) => {
     content.push({
-      columns: [
-        { width: 60 - indent, text: step.time || "", style: "stepTime", alignment: "right" },
-        {
-          width: 16,
-          stack: [{ canvas: [{ type: "ellipse", x: 8, y: 6, r1: 3.5, r2: 3.5, color: GOLD }] }],
-        },
-        {
-          width: "*",
-          stack: [
-            { text: step.title || "Sans titre", style: "stepTitle" },
-            step.description ? { text: step.description, style: "stepDescription" } : null,
-          ].filter(Boolean),
-        },
+      text: [
+        { text: "•  ", color: GOLD, fontSize: 9 },
+        { text: `${step.time || ""}   ·   `, style: "stepTime" },
+        { text: step.title || "Sans titre", style: "stepTitle" },
       ],
-      columnGap: 10,
-      margin: [indent, 0, 0, 16],
+      margin: [0, 0, 0, step.description ? 2 : 6],
     });
+    if (step.description) {
+      content.push({ text: step.description, style: "stepDescription", margin: [13, 0, 0, 6] });
+    }
+  };
+
+  // Bloc encadré doré distinguant visuellement un sous-programme (ex: "PROGRAMME
+  // - DINER DE MARIAGE (20h45 - 22h00)") du reste des étapes de la section.
+  const renderSubProgramBox = (title, steps) => {
+    const before = content.length;
+    content.push({ text: title, style: "subProgramLabel", margin: [0, 0, 0, 6] });
+    for (const step of steps) renderStepRow(step);
+    const boxed = content.splice(before);
+    content.push({
+      table: { widths: ["*"], body: [[{ stack: boxed, border: [true, true, true, true] }]] },
+      layout: {
+        hLineColor: () => GOLD,
+        vLineColor: () => GOLD,
+        hLineWidth: () => 0.75,
+        vLineWidth: () => 0.75,
+        paddingLeft: () => 8,
+        paddingRight: () => 8,
+        paddingTop: () => 6,
+        paddingBottom: () => 1,
+      },
+      margin: [0, 2, 0, 6],
+    });
+  };
+
+  const renderSection = (sectionName, sectionSteps, showLabel) => {
+    const stack = [];
+    const before = content.length;
+    if (showLabel) {
+      content.push({ text: sectionName.toUpperCase(), style: "sectionLabel", margin: [0, 0, 0, 8] });
+    }
+
+    // Les étapes rattachées à un sous-programme sont détaillées dans un encadré
+    // dédié ; celles sans sous-programme restent directement dans la section.
+    // Regroupées par suite consécutive pour garder l'ordre chronologique exact.
+    const subGroups = groupConsecutive(sectionSteps, (step) => step.subProgram || "");
+    for (const { key: subProgramName, items: subSteps } of subGroups) {
+      if (subProgramName) renderSubProgramBox(subProgramName, subSteps);
+      else for (const step of subSteps) renderStepRow(step);
+    }
+    stack.push(...content.splice(before));
+    return stack;
   };
 
   const steps = info.programDetailed || [];
@@ -333,41 +371,30 @@ function buildProgramPdf(info) {
     // les étapes sans section tombent dans un groupe "" affiché sans double-titre
     // quand c'est le seul groupe du programme.
     const sectionGroups = groupByOrdered(steps, (step) => step.section || "");
+    const showLabels = sectionGroups.length > 1 || !!sectionGroups[0]?.key;
 
-    sectionGroups.forEach(({ key: sectionName, items: sectionSteps }, idx) => {
-      if (idx > 0) {
-        content.push({
-          canvas: [{ type: "line", x1: 157, y1: 0, x2: 358, y2: 0, lineWidth: 0.5, lineColor: "#e5d6ae" }],
-          margin: [0, 6, 0, 20],
-        });
-      }
-
-      const label = sectionName || (sectionGroups.length === 1 ? "DÉROULÉ DE LA JOURNÉE" : "");
-      if (label) {
-        content.push({ text: label.toUpperCase(), style: "sectionLabel", alignment: "center", margin: [0, 0, 0, 18] });
-      }
-
-      // Second niveau : les étapes rattachées à un sous-programme (ex: "PROGRAMME
-      // - DINER DE MARIAGE (20h45 - 22h00)") sont détaillées sous un sous-titre
-      // dédié ; celles sans sous-programme restent directement dans la section.
-      const subGroups = groupConsecutive(sectionSteps, (step) => step.subProgram || "");
-      for (const { key: subProgramName, items: subSteps } of subGroups) {
-        if (subProgramName) {
-          content.push({ text: subProgramName, style: "subProgramLabel", margin: [0, 4, 0, 12] });
-        }
-        for (const step of subSteps) {
-          renderStepRow(step, subProgramName ? 24 : 0);
-        }
-      }
-    });
+    if (sectionGroups.length > 1) {
+      // Une colonne par acte, côte à côte : c'est ce qui permet de tenir le
+      // programme complet sur une seule page tout en séparant clairement Journée
+      // et Soirée (et donc, à l'intérieur, chaque sous-programme).
+      content.push({
+        columns: sectionGroups.map(({ key: sectionName, items: sectionSteps }) => ({
+          width: "*",
+          stack: renderSection(sectionName || "Programme", sectionSteps, showLabels),
+        })),
+        columnGap: 22,
+      });
+    } else {
+      content.push(...renderSection(sectionGroups[0]?.key || "Programme", sectionGroups[0]?.items || [], showLabels));
+    }
   } else {
     content.push({ text: "Le programme détaillé sera bientôt disponible.", style: "emptyNote", alignment: "center" });
   }
 
   if (info.quote) {
     content.push({
-      canvas: [{ type: "line", x1: 157, y1: 0, x2: 358, y2: 0, lineWidth: 1, lineColor: GOLD }],
-      margin: [0, 10, 0, 20],
+      canvas: [{ type: "line", x1: 171, y1: 0, x2: 320, y2: 0, lineWidth: 1, lineColor: GOLD }],
+      margin: [0, 8, 0, 6],
     });
     content.push({ text: `«  ${info.quote}  »`, style: "quote", alignment: "center" });
     if (info.quoteSource) {
@@ -377,25 +404,50 @@ function buildProgramPdf(info) {
 
   return docToBuffer({
     pageSize: "A4",
-    pageMargins: [50, 60, 50, 60],
+    pageMargins: [52, 54, 52, 50],
+    // Cadre décoratif fin en fond de page (indépendant du flux du contenu) pour
+    // un rendu "carton d'invitation" plutôt que "rapport" — le contenu tient
+    // large sur une page, autant en profiter pour l'habiller.
+    background: (_currentPage, pageSize) => ({
+      canvas: [
+        {
+          type: "rect",
+          x: 24,
+          y: 24,
+          w: pageSize.width - 48,
+          h: pageSize.height - 48,
+          lineColor: "#d9c98a",
+          lineWidth: 1,
+        },
+        {
+          type: "rect",
+          x: 28,
+          y: 28,
+          w: pageSize.width - 56,
+          h: pageSize.height - 56,
+          lineColor: "#d9c98a",
+          lineWidth: 0.5,
+        },
+      ],
+    }),
     footer: reportFooter,
     content,
     styles: {
       ...styles,
       programBrand: { fontSize: 10, bold: true, color: MUTED, characterSpacing: 3 },
-      programTitle: { fontSize: 26, bold: true, color: DARK, margin: [0, 8, 0, 4] },
+      programTitle: { fontSize: 25, bold: true, color: DARK, margin: [0, 8, 0, 4] },
       programDate: { fontSize: 12, italics: true, color: GOLD },
-      infoLabel: { fontSize: 8, bold: true, color: MUTED, characterSpacing: 1, margin: [0, 0, 0, 4] },
+      infoLabel: { fontSize: 7.5, bold: true, color: MUTED, characterSpacing: 1, margin: [0, 0, 0, 4] },
       infoValue: { fontSize: 11, bold: true, color: DARK },
-      sectionLabel: { fontSize: 10, bold: true, color: GOLD, characterSpacing: 3 },
-      subProgramLabel: { fontSize: 9, bold: true, color: DARK, italics: true },
-      stepTime: { fontSize: 10, bold: true, color: GOLD },
-      stepTitle: { fontSize: 12, bold: true, color: DARK },
-      stepDescription: { fontSize: 9, color: MUTED, margin: [0, 2, 0, 0] },
-      quote: { fontSize: 12, italics: true, color: DARK },
-      quoteSource: { fontSize: 9, color: MUTED, margin: [0, 6, 0, 0] },
+      sectionLabel: { fontSize: 12, bold: true, color: GOLD, characterSpacing: 3 },
+      subProgramLabel: { fontSize: 9.5, bold: true, color: GOLD, characterSpacing: 0.75 },
+      stepTime: { fontSize: 9.5, bold: true, color: GOLD },
+      stepTitle: { fontSize: 10.5, bold: true, color: DARK },
+      stepDescription: { fontSize: 8.5, color: MUTED, italics: true },
+      quote: { fontSize: 12.5, italics: true, color: DARK },
+      quoteSource: { fontSize: 9, color: MUTED, margin: [0, 5, 0, 0] },
     },
-    defaultStyle: { font: "Roboto", fontSize: 10, color: DARK },
+    defaultStyle: { font: "Roboto", fontSize: 10 },
   });
 }
 
