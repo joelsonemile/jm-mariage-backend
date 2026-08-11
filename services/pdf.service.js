@@ -186,13 +186,14 @@ function buildCommitteePdf(commissions, members) {
     const commissionMembers = (membersByCommission.get(commission.nom) || []).sort((a, b) =>
       a.nom.localeCompare(b.nom, "fr")
     );
-    const responsableId = commission.responsable ? commission.responsable._id.toString() : null;
+    const responsables = commission.responsables || [];
+    const responsableIds = new Set(responsables.map((r) => r._id.toString()));
 
     content.push({
       text: [
         { text: commission.nom, bold: true, fontSize: 11, color: DARK },
-        commission.responsable
-          ? { text: `   Responsable : ${commission.responsable.nom}`, color: MUTED }
+        responsables.length
+          ? { text: `   Responsable(s) : ${responsables.map((r) => r.nom).join(", ")}`, color: MUTED }
           : { text: "   Aucun responsable désigné", color: MUTED, italics: true },
       ],
       margin: [0, 12, 0, 4],
@@ -214,7 +215,7 @@ function buildCommitteePdf(commissions, members) {
           ],
           ...commissionMembers.map((m) => [
             {
-              text: m._id.toString() === responsableId ? `${m.nom}  (responsable)` : m.nom,
+              text: responsableIds.has(m._id.toString()) ? `${m.nom}  (responsable)` : m.nom,
               style: "tableCell",
             },
             { text: m.role || "—", style: "tableCell" },

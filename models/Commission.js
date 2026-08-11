@@ -3,9 +3,10 @@ const mongoose = require("mongoose");
 const commissionSchema = new mongoose.Schema(
   {
     nom: { type: String, required: true, unique: true, trim: true },
-    // Le "comité" de cette commission : son responsable principal, unique.
-    // Doit être un CommitteeMember dont le champ `commission` correspond à ce nom.
-    responsable: { type: mongoose.Schema.Types.ObjectId, ref: "CommitteeMember", default: null },
+    // Le "comité" de cette commission : ses responsables (un ou plusieurs
+    // co-responsables, ex: Samuel et Johnathan pour Accueil & Logistique).
+    // Chaque membre référencé doit avoir `commission` égal à ce nom.
+    responsables: { type: [{ type: mongoose.Schema.Types.ObjectId, ref: "CommitteeMember" }], default: [] },
   },
   { timestamps: true }
 );
