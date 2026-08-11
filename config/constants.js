@@ -156,7 +156,7 @@ const RESERVATION_STATUS = {
   CANCELLED: "cancelled",
 };
 
-const SEATS_PER_TABLE = 10;
+const SEATS_PER_TABLE = 8;
 
 const GUEST_TABLES = [
   { name: "Baobab", description: "Inspirée des baobabs emblématiques de Madagascar", order: 1 },
@@ -169,6 +169,10 @@ const GUEST_TABLES = [
   { name: "Mahajanga", description: "La baie et les embruns du nord-ouest", order: 8 },
   { name: "Tuléar", description: "Le sud et ses lagons turquoise", order: 9 },
   { name: "Manakara", description: "La côte est et le canal des Pangalanes", order: 10 },
+  { name: "Antananarivo", description: "La capitale et ses collines historiques", order: 11 },
+  { name: "Ranomafana", description: "Le parc national et sa forêt tropicale", order: 12 },
+  { name: "Diego Suarez", description: "La baie spectaculaire du grand nord", order: 13 },
+  { name: "Sainte-Marie", description: "L'île aux baleines et ses plages sauvages", order: 14 },
 ].map((t) => ({ ...t, isHonorTable: false, totalSeats: SEATS_PER_TABLE }));
 
 module.exports = {
