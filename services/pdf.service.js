@@ -275,7 +275,7 @@ function buildProgramPdf(info) {
 
   content.push({
     canvas: [{ type: "rect", x: 0, y: 0, w: 491, h: 1.5, color: GOLD }],
-    margin: [0, 0, 0, 12],
+    margin: [0, 0, 0, 8],
   });
   content.push({ text: "JOELSON  &  MARJORIE", style: "programBrand", alignment: "center" });
   content.push({ text: "Programme du mariage", style: "programTitle", alignment: "center" });
@@ -297,13 +297,13 @@ function buildProgramPdf(info) {
         ],
       })),
       columnGap: 14,
-      margin: [30, 12, 30, 12],
+      margin: [30, 8, 30, 8],
     });
   }
 
   content.push({
     canvas: [{ type: "line", x1: 171, y1: 0, x2: 320, y2: 0, lineWidth: 1, lineColor: GOLD }],
-    margin: [0, 0, 0, 16],
+    margin: [0, 0, 0, 10],
   });
 
   // Une étape tient sur une seule ligne fluide "• HEURE · Titre" (pas de colonnes
@@ -311,16 +311,15 @@ function buildProgramPdf(info) {
   // disgracieux sur l'heure. "•" (U+2022) est utilisé plutôt que "●" (U+25CF) car
   // seul le premier existe dans l'encodage WinAnsi des polices standard PDF.
   const renderStepRow = (step) => {
+    const parts = [{ text: "•  ", color: GOLD, fontSize: 9 }];
+    if (step.time) parts.push({ text: `${step.time}   ·   `, style: "stepTime" });
+    parts.push({ text: step.title || "Sans titre", style: "stepTitle" });
     content.push({
-      text: [
-        { text: "•  ", color: GOLD, fontSize: 9 },
-        { text: `${step.time || ""}   ·   `, style: "stepTime" },
-        { text: step.title || "Sans titre", style: "stepTitle" },
-      ],
-      margin: [0, 0, 0, step.description ? 2 : 6],
+      text: parts,
+      margin: [0, 0, 0, step.description ? 1 : 4],
     });
     if (step.description) {
-      content.push({ text: step.description, style: "stepDescription", margin: [13, 0, 0, 6] });
+      content.push({ text: step.description, style: "stepDescription", margin: [13, 0, 0, 4] });
     }
   };
 
@@ -328,7 +327,7 @@ function buildProgramPdf(info) {
   // - DINER DE MARIAGE (20h45 - 22h00)") du reste des étapes de la section.
   const renderSubProgramBox = (title, steps) => {
     const before = content.length;
-    content.push({ text: title, style: "subProgramLabel", margin: [0, 0, 0, 6] });
+    content.push({ text: title, style: "subProgramLabel", margin: [0, 0, 0, 4] });
     for (const step of steps) renderStepRow(step);
     const boxed = content.splice(before);
     content.push({
@@ -340,10 +339,10 @@ function buildProgramPdf(info) {
         vLineWidth: () => 0.75,
         paddingLeft: () => 8,
         paddingRight: () => 8,
-        paddingTop: () => 6,
+        paddingTop: () => 5,
         paddingBottom: () => 1,
       },
-      margin: [0, 2, 0, 6],
+      margin: [0, 2, 0, 4],
     });
   };
 
@@ -351,7 +350,7 @@ function buildProgramPdf(info) {
     const stack = [];
     const before = content.length;
     if (showLabel) {
-      content.push({ text: sectionName.toUpperCase(), style: "sectionLabel", margin: [0, 0, 0, 8] });
+      content.push({ text: sectionName.toUpperCase(), style: "sectionLabel", margin: [0, 0, 0, 6] });
     }
 
     // Les étapes rattachées à un sous-programme sont détaillées dans un encadré
@@ -395,7 +394,7 @@ function buildProgramPdf(info) {
   if (info.quote) {
     content.push({
       canvas: [{ type: "line", x1: 171, y1: 0, x2: 320, y2: 0, lineWidth: 1, lineColor: GOLD }],
-      margin: [0, 8, 0, 6],
+      margin: [0, 4, 0, 4],
     });
     content.push({ text: `«  ${info.quote}  »`, style: "quote", alignment: "center" });
     if (info.quoteSource) {
@@ -405,7 +404,7 @@ function buildProgramPdf(info) {
 
   return docToBuffer({
     pageSize: "A4",
-    pageMargins: [52, 54, 52, 50],
+    pageMargins: [48, 34, 48, 28],
     // Cadre décoratif fin en fond de page (indépendant du flux du contenu) pour
     // un rendu "carton d'invitation" plutôt que "rapport" — le contenu tient
     // large sur une page, autant en profiter pour l'habiller.
