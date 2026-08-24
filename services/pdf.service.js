@@ -502,12 +502,12 @@ function buildTablesPdf(tables, reservationsByTableId) {
         { text: table.name, style: "cardTableName" },
         table.adminOnly ? { text: "  ADMIN", style: "cardAdminTag" } : null,
       ].filter(Boolean),
-      margin: [0, 0, 0, 4],
+      margin: [0, 0, 0, 6],
     };
     const meta = {
       text: `${reservations.length}/${table.totalSeats} places occupées`,
       style: "cardMeta",
-      margin: [0, 0, 0, 14],
+      margin: [0, 0, 0, 16],
     };
 
     const seatRows = [];
@@ -517,13 +517,13 @@ function buildTablesPdf(tables, reservationsByTableId) {
         const name = r.companionName || r.guest?.fullName || "—";
         seatRows.push({
           text: [
-            { text: `#${n}   `, style: "cardSeatNum" },
+            { text: `#${n}    `, style: "cardSeatNum" },
             { text: name, style: "cardSeatName" },
           ],
-          margin: [0, 0, 0, 9],
+          margin: [0, 0, 0, 11],
         });
       } else {
-        seatRows.push({ text: `#${n}   Libre`, style: "cardSeatEmpty", margin: [0, 0, 0, 9] });
+        seatRows.push({ text: `#${n}    Libre`, style: "cardSeatEmpty", margin: [0, 0, 0, 11] });
       }
     }
 
@@ -535,10 +535,10 @@ function buildTablesPdf(tables, reservationsByTableId) {
         vLineColor: () => GOLD,
         hLineWidth: () => 0.75,
         vLineWidth: () => 0.75,
-        paddingLeft: () => 16,
-        paddingRight: () => 16,
-        paddingTop: () => 18,
-        paddingBottom: () => 16,
+        paddingLeft: () => 18,
+        paddingRight: () => 18,
+        paddingTop: () => 20,
+        paddingBottom: () => 18,
       },
     };
   };
@@ -550,7 +550,7 @@ function buildTablesPdf(tables, reservationsByTableId) {
       content.push({
         columns: rowTables.map(renderTableCard),
         columnGap: 25,
-        margin: [0, 0, 0, 40],
+        margin: [0, 0, 0, 30],
         pageBreak: i > 0 && j === 0 ? "before" : undefined,
       });
     }
@@ -568,12 +568,12 @@ function buildTablesPdf(tables, reservationsByTableId) {
       programDate: { fontSize: 10, italics: true, color: GOLD },
       summaryOccupied: { fontSize: 15, bold: true, color: "#b45309" },
       summaryFree: { fontSize: 15, bold: true, color: "#15803d" },
-      cardTableName: { fontSize: 17, bold: true, color: DARK },
-      cardAdminTag: { fontSize: 8.5, bold: true, color: GOLD },
+      cardTableName: { fontSize: 18, bold: true, color: DARK },
+      cardAdminTag: { fontSize: 9, bold: true, color: GOLD },
       cardMeta: { fontSize: 10, color: MUTED },
-      cardSeatNum: { fontSize: 12.5, bold: true, color: GOLD },
-      cardSeatName: { fontSize: 12.5, color: DARK },
-      cardSeatEmpty: { fontSize: 12.5, italics: true, color: MUTED },
+      cardSeatNum: { fontSize: 13, bold: true, color: GOLD },
+      cardSeatName: { fontSize: 13, color: DARK },
+      cardSeatEmpty: { fontSize: 13, italics: true, color: MUTED },
     },
     defaultStyle: { font: "Roboto", fontSize: 10 },
   });
