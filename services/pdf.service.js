@@ -27,6 +27,13 @@ const styles = {
   tableCell: { fontSize: 9, color: DARK },
   footerText: { fontSize: 8, color: MUTED },
   emptyNote: { fontSize: 9, italics: true, color: MUTED, margin: [0, 0, 0, 8] },
+  // Styles "carton d'invitation" partagés par les exports au style plus soigné
+  // (programme, plan des tables) : marque + titre centrés, mini-stats en colonnes.
+  programBrand: { fontSize: 10, bold: true, color: MUTED, characterSpacing: 3 },
+  programTitle: { fontSize: 25, bold: true, color: DARK, margin: [0, 8, 0, 4] },
+  programDate: { fontSize: 12, italics: true, color: GOLD },
+  infoLabel: { fontSize: 7.5, bold: true, color: MUTED, characterSpacing: 1, margin: [0, 0, 0, 4] },
+  infoValue: { fontSize: 11, bold: true, color: DARK },
 };
 
 function tableLayoutLight() {
@@ -438,11 +445,7 @@ function buildProgramPdf(info) {
     content,
     styles: {
       ...styles,
-      programBrand: { fontSize: 10, bold: true, color: MUTED, characterSpacing: 3 },
       programTitle: { fontSize: 25, bold: true, color: DARK, margin: [0, 8, 0, 4] },
-      programDate: { fontSize: 12, italics: true, color: GOLD },
-      infoLabel: { fontSize: 7.5, bold: true, color: MUTED, characterSpacing: 1, margin: [0, 0, 0, 4] },
-      infoValue: { fontSize: 11, bold: true, color: DARK },
       sectionLabel: { fontSize: 12, bold: true, color: GOLD, characterSpacing: 3 },
       subProgramLabel: { fontSize: 9.5, bold: true, color: GOLD, characterSpacing: 0.75 },
       stepTime: { fontSize: 9.5, bold: true, color: GOLD },
@@ -467,14 +470,25 @@ function buildTablesPdf(tables, reservationsByTableId) {
   });
   content.push({ text: "JOELSON  &  MARJORIE", style: "programBrand", alignment: "center" });
   content.push({ text: "Plan des tables", style: "programTitle", alignment: "center" });
+  content.push({ text: `${tables.length} table(s)`, style: "programDate", alignment: "center" });
+
+  const totalSeats = tables.reduce((sum, t) => sum + t.totalSeats, 0);
+  const totalOccupied = tables.reduce((sum, t) => sum + (reservationsByTableId.get(t.id.toString())?.length || 0), 0);
+  const totalFree = totalSeats - totalOccupied;
+
   content.push({
-    text: `${tables.length} table(s) · ${tables.reduce((sum, t) => sum + t.totalSeats, 0)} places au total`,
-    style: "programDate",
-    alignment: "center",
+    columns: [
+      { stack: [{ text: "PLACES AU TOTAL", style: "infoLabel", alignment: "center" }, { text: String(totalSeats), style: "infoValue", alignment: "center" }] },
+      { stack: [{ text: "PLACES OCCUPÉES", style: "infoLabel", alignment: "center" }, { text: String(totalOccupied), style: "summaryOccupied", alignment: "center" }] },
+      { stack: [{ text: "PLACES LIBRES", style: "infoLabel", alignment: "center" }, { text: String(totalFree), style: "summaryFree", alignment: "center" }] },
+    ],
+    columnGap: 14,
+    margin: [30, 12, 30, 12],
   });
+
   content.push({
     canvas: [{ type: "line", x1: 171, y1: 0, x2: 320, y2: 0, lineWidth: 1, lineColor: GOLD }],
-    margin: [0, 10, 0, 16],
+    margin: [0, 0, 0, 16],
   });
 
   const CARD_WIDTH = 233;
@@ -550,9 +564,10 @@ function buildTablesPdf(tables, reservationsByTableId) {
     content,
     styles: {
       ...styles,
-      programBrand: { fontSize: 10, bold: true, color: MUTED, characterSpacing: 3 },
       programTitle: { fontSize: 22, bold: true, color: DARK, margin: [0, 8, 0, 4] },
       programDate: { fontSize: 10, italics: true, color: GOLD },
+      summaryOccupied: { fontSize: 15, bold: true, color: "#b45309" },
+      summaryFree: { fontSize: 15, bold: true, color: "#15803d" },
       cardTableName: { fontSize: 17, bold: true, color: DARK },
       cardAdminTag: { fontSize: 8.5, bold: true, color: GOLD },
       cardMeta: { fontSize: 10, color: MUTED },
