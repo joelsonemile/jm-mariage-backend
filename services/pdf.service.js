@@ -493,6 +493,21 @@ function buildTablesPdf(tables, reservationsByTableId) {
 
   const CARD_WIDTH = 233;
 
+  // Un nom trop long revient à la ligne et casse l'alignement des deux cartes
+  // d'une même rangée (pdfmake ne peut pas les forcer à la même hauteur si leur
+  // contenu diffère) — on tronque donc plutôt que de laisser une carte grandir.
+  // On retire aussi les caractères hors WinAnsi (emoji...) qui s'affichent en
+  // glyphes cassés avec les polices standard PDF (seuls é/è/à/ç... sont couverts).
+  const cleanName = (name) =>
+    name
+      .replace(/[^ -ÿ]/gu, "")
+      .replace(/\s+/g, " ")
+      .trim() || "Invité";
+  const truncateName = (name) => {
+    const clean = cleanName(name);
+    return clean.length > 20 ? `${clean.slice(0, 19)}…` : clean;
+  };
+
   const renderTableCard = (table) => {
     const reservations = (reservationsByTableId.get(table.id.toString()) || []).slice().sort((a, b) => a.seatNumber - b.seatNumber);
     const bySeat = new Map(reservations.map((r) => [r.seatNumber, r]));
@@ -514,7 +529,7 @@ function buildTablesPdf(tables, reservationsByTableId) {
     for (let n = 1; n <= table.totalSeats; n++) {
       const r = bySeat.get(n);
       if (r) {
-        const name = r.companionName || r.guest?.fullName || "—";
+        const name = truncateName(r.companionName || r.guest?.fullName || "—");
         seatRows.push({
           text: [
             { text: `#${n}    `, style: "cardSeatNum" },
