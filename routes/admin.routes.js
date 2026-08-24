@@ -9,6 +9,8 @@ router.use(requireAuth, requireRole(ROLES.ADMIN));
 
 router.get("/dashboard", adminController.dashboard);
 
+router.get("/tables/pdf", adminController.exportTablesPdf);
+
 router.get("/reservations", adminController.listReservations);
 router.post("/reservations", adminController.createReservationManual);
 router.post("/reservations/assign-invited-guest", adminController.assignInvitedGuestToSeat);

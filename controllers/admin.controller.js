@@ -575,6 +575,31 @@ const deleteCommission = asyncHandler(async (req, res) => {
   return ok(res, { message: "Commission supprimée." });
 });
 
+const exportTablesPdf = asyncHandler(async (req, res) => {
+  const tables = await Table.find().sort({ order: 1 });
+  const reservations = await Reservation.find({ status: { $in: ACTIVE_STATUSES } }).populate("guest", "fullName");
+
+  const byTable = new Map();
+  for (const r of reservations) {
+    const key = r.table.toString();
+    if (!byTable.has(key)) byTable.set(key, []);
+    byTable.get(key).push(r);
+  }
+
+  const buffer = await pdfService.buildTablesPdf(
+    tables.map((t) => ({
+      id: t._id,
+      name: t.name,
+      totalSeats: t.totalSeats,
+      adminOnly: t.adminOnly,
+    })),
+    byTable
+  );
+  res.header("Content-Type", "application/pdf");
+  res.attachment("plan-tables-jm-mariage.pdf");
+  return res.send(buffer);
+});
+
 const exportCommitteePdf = asyncHandler(async (req, res) => {
   const [commissions, members] = await Promise.all([
     Commission.find().sort({ nom: 1 }).populate("responsables", "nom role"),
@@ -592,6 +617,7 @@ module.exports = {
   approveReservation,
   deleteReservation,
   createReservationManual,
+  exportTablesPdf,
   assignInvitedGuestToSeat,
   moveReservation,
   listGuests,

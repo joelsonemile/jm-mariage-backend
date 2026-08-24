@@ -66,6 +66,34 @@ function reportFooter(currentPage, pageCount) {
   };
 }
 
+// Cadre décoratif fin en fond de page (indépendant du flux du contenu) pour un
+// rendu "carton d'invitation" plutôt que "rapport" — réutilisé par tous les
+// exports qui veulent ce style plus soigné qu'un simple rapport tabulaire.
+function decorativeFrame(_currentPage, pageSize) {
+  return {
+    canvas: [
+      {
+        type: "rect",
+        x: 24,
+        y: 24,
+        w: pageSize.width - 48,
+        h: pageSize.height - 48,
+        lineColor: "#d9c98a",
+        lineWidth: 1,
+      },
+      {
+        type: "rect",
+        x: 28,
+        y: 28,
+        w: pageSize.width - 56,
+        h: pageSize.height - 56,
+        lineColor: "#d9c98a",
+        lineWidth: 0.5,
+      },
+    ],
+  };
+}
+
 function docToBuffer(docDefinition) {
   return pdfmake.createPdf(docDefinition).getBuffer();
 }
@@ -405,31 +433,7 @@ function buildProgramPdf(info) {
   return docToBuffer({
     pageSize: "A4",
     pageMargins: [48, 34, 48, 28],
-    // Cadre décoratif fin en fond de page (indépendant du flux du contenu) pour
-    // un rendu "carton d'invitation" plutôt que "rapport" — le contenu tient
-    // large sur une page, autant en profiter pour l'habiller.
-    background: (_currentPage, pageSize) => ({
-      canvas: [
-        {
-          type: "rect",
-          x: 24,
-          y: 24,
-          w: pageSize.width - 48,
-          h: pageSize.height - 48,
-          lineColor: "#d9c98a",
-          lineWidth: 1,
-        },
-        {
-          type: "rect",
-          x: 28,
-          y: 28,
-          w: pageSize.width - 56,
-          h: pageSize.height - 56,
-          lineColor: "#d9c98a",
-          lineWidth: 0.5,
-        },
-      ],
-    }),
+    background: decorativeFrame,
     footer: reportFooter,
     content,
     styles: {
@@ -451,4 +455,113 @@ function buildProgramPdf(info) {
   });
 }
 
-module.exports = { buildInvitedGuestsPdf, buildCommitteePdf, buildProgramPdf };
+// Plan des tables : une fiche par table (nom + liste de toutes les places,
+// occupées ou libres) rangées 2x2, soit 4 tables par page — pratique à
+// imprimer et à poser près de chaque table le jour J.
+function buildTablesPdf(tables, reservationsByTableId) {
+  const content = [];
+
+  content.push({
+    canvas: [{ type: "rect", x: 0, y: 0, w: 491, h: 1.5, color: GOLD }],
+    margin: [0, 0, 0, 8],
+  });
+  content.push({ text: "JOELSON  &  MARJORIE", style: "programBrand", alignment: "center" });
+  content.push({ text: "Plan des tables", style: "programTitle", alignment: "center" });
+  content.push({
+    text: `${tables.length} table(s) · ${tables.reduce((sum, t) => sum + t.totalSeats, 0)} places au total`,
+    style: "programDate",
+    alignment: "center",
+  });
+  content.push({
+    canvas: [{ type: "line", x1: 171, y1: 0, x2: 320, y2: 0, lineWidth: 1, lineColor: GOLD }],
+    margin: [0, 10, 0, 16],
+  });
+
+  const CARD_WIDTH = 233;
+
+  const renderTableCard = (table) => {
+    const reservations = (reservationsByTableId.get(table.id.toString()) || []).slice().sort((a, b) => a.seatNumber - b.seatNumber);
+    const bySeat = new Map(reservations.map((r) => [r.seatNumber, r]));
+
+    const header = {
+      text: [
+        { text: table.name, style: "cardTableName" },
+        table.adminOnly ? { text: "  ADMIN", style: "cardAdminTag" } : null,
+      ].filter(Boolean),
+      margin: [0, 0, 0, 4],
+    };
+    const meta = {
+      text: `${reservations.length}/${table.totalSeats} places occupées`,
+      style: "cardMeta",
+      margin: [0, 0, 0, 14],
+    };
+
+    const seatRows = [];
+    for (let n = 1; n <= table.totalSeats; n++) {
+      const r = bySeat.get(n);
+      if (r) {
+        const name = r.companionName || r.guest?.fullName || "—";
+        seatRows.push({
+          text: [
+            { text: `#${n}   `, style: "cardSeatNum" },
+            { text: name, style: "cardSeatName" },
+          ],
+          margin: [0, 0, 0, 9],
+        });
+      } else {
+        seatRows.push({ text: `#${n}   Libre`, style: "cardSeatEmpty", margin: [0, 0, 0, 9] });
+      }
+    }
+
+    return {
+      width: CARD_WIDTH,
+      table: { widths: ["*"], body: [[{ stack: [header, meta, ...seatRows], border: [true, true, true, true] }]] },
+      layout: {
+        hLineColor: () => GOLD,
+        vLineColor: () => GOLD,
+        hLineWidth: () => 0.75,
+        vLineWidth: () => 0.75,
+        paddingLeft: () => 16,
+        paddingRight: () => 16,
+        paddingTop: () => 18,
+        paddingBottom: () => 16,
+      },
+    };
+  };
+
+  for (let i = 0; i < tables.length; i += 4) {
+    const group = tables.slice(i, i + 4);
+    for (let j = 0; j < group.length; j += 2) {
+      const rowTables = group.slice(j, j + 2);
+      content.push({
+        columns: rowTables.map(renderTableCard),
+        columnGap: 25,
+        margin: [0, 0, 0, 40],
+        pageBreak: i > 0 && j === 0 ? "before" : undefined,
+      });
+    }
+  }
+
+  return docToBuffer({
+    pageSize: "A4",
+    pageMargins: [48, 34, 48, 28],
+    background: decorativeFrame,
+    footer: reportFooter,
+    content,
+    styles: {
+      ...styles,
+      programBrand: { fontSize: 10, bold: true, color: MUTED, characterSpacing: 3 },
+      programTitle: { fontSize: 22, bold: true, color: DARK, margin: [0, 8, 0, 4] },
+      programDate: { fontSize: 10, italics: true, color: GOLD },
+      cardTableName: { fontSize: 17, bold: true, color: DARK },
+      cardAdminTag: { fontSize: 8.5, bold: true, color: GOLD },
+      cardMeta: { fontSize: 10, color: MUTED },
+      cardSeatNum: { fontSize: 12.5, bold: true, color: GOLD },
+      cardSeatName: { fontSize: 12.5, color: DARK },
+      cardSeatEmpty: { fontSize: 12.5, italics: true, color: MUTED },
+    },
+    defaultStyle: { font: "Roboto", fontSize: 10 },
+  });
+}
+
+module.exports = { buildInvitedGuestsPdf, buildCommitteePdf, buildProgramPdf, buildTablesPdf };
