@@ -8,6 +8,10 @@ const qrcodeService = require("../services/qrcode.service");
 const ACTIVE_STATUSES = [RESERVATION_STATUS.PENDING, RESERVATION_STATUS.VALIDATED];
 
 const create = asyncHandler(async (req, res) => {
+  if (req.user.role !== "admin") {
+    throw new ApiError(403, "Les réservations sont clôturées. L'organisation gère désormais les placements.");
+  }
+
   const { tableId, seatNumber, companionName } = req.body;
   if (!tableId || !seatNumber) throw new ApiError(400, "Table et numéro de place requis.");
   if (!companionName || !companionName.trim()) {
@@ -67,6 +71,10 @@ const cancel = asyncHandler(async (req, res) => {
 });
 
 const change = asyncHandler(async (req, res) => {
+  if (req.user.role !== "admin") {
+    throw new ApiError(403, "Les réservations sont clôturées. L'organisation gère désormais les placements.");
+  }
+
   const { tableId, seatNumber } = req.body;
   if (!tableId || !seatNumber) throw new ApiError(400, "Table et numéro de place requis.");
 
