@@ -592,6 +592,7 @@ const exportTablesPdf = asyncHandler(async (req, res) => {
       name: t.name,
       totalSeats: t.totalSeats,
       adminOnly: t.adminOnly,
+      order: t.order,
     })),
     byTable
   );

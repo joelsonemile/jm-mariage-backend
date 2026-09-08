@@ -514,6 +514,7 @@ function buildTablesPdf(tables, reservationsByTableId) {
 
     const header = {
       text: [
+        { text: `N°${table.order}  `, style: "cardOrderTag" },
         { text: table.name, style: "cardTableName" },
         table.adminOnly ? { text: "  ADMIN", style: "cardAdminTag" } : null,
       ].filter(Boolean),
@@ -584,6 +585,7 @@ function buildTablesPdf(tables, reservationsByTableId) {
       summaryOccupied: { fontSize: 15, bold: true, color: "#b45309" },
       summaryFree: { fontSize: 15, bold: true, color: "#15803d" },
       cardTableName: { fontSize: 18, bold: true, color: DARK },
+      cardOrderTag: { fontSize: 14, bold: true, color: GOLD },
       cardAdminTag: { fontSize: 9, bold: true, color: GOLD },
       cardMeta: { fontSize: 10, color: MUTED },
       cardSeatNum: { fontSize: 13, bold: true, color: GOLD },

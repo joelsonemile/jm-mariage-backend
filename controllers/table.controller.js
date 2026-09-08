@@ -81,6 +81,7 @@ const getTable = asyncHandler(async (req, res) => {
       isHonorTable: table.isHonorTable,
       adminOnly: table.adminOnly,
       totalSeats: table.totalSeats,
+      order: table.order,
     },
     seats,
   });
