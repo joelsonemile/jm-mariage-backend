@@ -458,124 +458,141 @@ function buildProgramPdf(info) {
   });
 }
 
-// Plan des tables : une fiche compacte par table (nom + liste de toutes les
-// places, occupées ou libres), toutes tenant sur une seule page A4 paysage —
-// pratique à imprimer en un coup d'œil pour le jour J.
+// Plan des tables : une fiche par table (nom + liste de toutes les places,
+// occupées ou libres) rangées 2x2, soit 4 tables par page — pratique à
+// imprimer et à poser près de chaque table le jour J.
 function buildTablesPdf(tables, reservationsByTableId) {
   const content = [];
-  const PAGE_WIDTH = 841.89;
-  const COLUMNS = 7;
 
   content.push({
-    canvas: [{ type: "rect", x: 0, y: 0, w: PAGE_WIDTH - 40, h: 1.2, color: GOLD }],
-    margin: [0, 0, 0, 5],
+    canvas: [{ type: "rect", x: 0, y: 0, w: 491, h: 1.5, color: GOLD }],
+    margin: [0, 0, 0, 8],
   });
+  content.push({ text: "JOELSON  &  MARJORIE", style: "programBrand", alignment: "center" });
+  content.push({ text: "Plan des tables", style: "programTitle", alignment: "center" });
+  content.push({ text: `${tables.length} table(s)`, style: "programDate", alignment: "center" });
 
   const totalSeats = tables.reduce((sum, t) => sum + t.totalSeats, 0);
   const totalOccupied = tables.reduce((sum, t) => sum + (reservationsByTableId.get(t.id.toString())?.length || 0), 0);
+  const totalFree = totalSeats - totalOccupied;
 
   content.push({
     columns: [
-      { text: "JOELSON & MARJORIE", style: "compactBrand" },
-      { text: "Plan des tables", style: "compactTitle", alignment: "center" },
-      {
-        text: `${tables.length} tables · ${totalOccupied}/${totalSeats} places occupées`,
-        style: "compactBrand",
-        alignment: "right",
-      },
+      { stack: [{ text: "PLACES AU TOTAL", style: "infoLabel", alignment: "center" }, { text: String(totalSeats), style: "infoValue", alignment: "center" }] },
+      { stack: [{ text: "PLACES OCCUPÉES", style: "infoLabel", alignment: "center" }, { text: String(totalOccupied), style: "summaryOccupied", alignment: "center" }] },
+      { stack: [{ text: "PLACES LIBRES", style: "infoLabel", alignment: "center" }, { text: String(totalFree), style: "summaryFree", alignment: "center" }] },
     ],
-    margin: [0, 0, 0, 10],
+    columnGap: 14,
+    margin: [30, 12, 30, 12],
   });
 
-  // Un nom trop long revient à la ligne et casse l'alignement des cartes d'une
-  // même rangée (pdfmake ne peut pas forcer deux tables indépendantes à la
-  // même hauteur si leur contenu diffère) — on tronque donc plutôt que de
-  // laisser une carte grandir. On retire aussi les caractères hors WinAnsi
-  // (emoji...) qui s'affichent en glyphes cassés avec les polices standard PDF.
+  content.push({
+    canvas: [{ type: "line", x1: 171, y1: 0, x2: 320, y2: 0, lineWidth: 1, lineColor: GOLD }],
+    margin: [0, 0, 0, 16],
+  });
+
+  const CARD_WIDTH = 233;
+
+  // Un nom trop long revient à la ligne et casse l'alignement des deux cartes
+  // d'une même rangée (pdfmake ne peut pas les forcer à la même hauteur si leur
+  // contenu diffère) — on tronque donc plutôt que de laisser une carte grandir.
+  // On retire aussi les caractères hors WinAnsi (emoji...) qui s'affichent en
+  // glyphes cassés avec les polices standard PDF (seuls é/è/à/ç... sont couverts).
   const cleanName = (name) =>
     name
       .replace(/[^ -ÿ]/gu, "")
       .replace(/\s+/g, " ")
       .trim() || "Invité";
-  const truncateName = (name, max) => {
+  const truncateName = (name) => {
     const clean = cleanName(name);
-    return clean.length > max ? `${clean.slice(0, max - 1)}…` : clean;
+    return clean.length > 20 ? `${clean.slice(0, 19)}…` : clean;
   };
 
   const renderTableCard = (table) => {
     const reservations = (reservationsByTableId.get(table.id.toString()) || []).slice().sort((a, b) => a.seatNumber - b.seatNumber);
     const bySeat = new Map(reservations.map((r) => [r.seatNumber, r]));
 
-    // Le numéro sur sa propre ligne laisse toute la largeur de la carte au nom,
-    // qui sinon devait partager la ligne avec le préfixe "N " et débordait sur
-    // une deuxième ligne (cassant l'alignement de hauteur avec la carte voisine).
-    const orderLine = { text: `TABLE ${table.order}`, style: "compactOrderTag", margin: [0, 0, 0, 1] };
-    const header = { text: truncateName(table.name, 10), style: "compactTableName", margin: [0, 0, 0, 4] };
+    const header = {
+      text: [
+        { text: `N°${table.order}  `, style: "cardOrderTag" },
+        { text: table.name, style: "cardTableName" },
+        table.adminOnly ? { text: "  ADMIN", style: "cardAdminTag" } : null,
+      ].filter(Boolean),
+      margin: [0, 0, 0, 6],
+    };
     const meta = {
-      text: table.adminOnly ? `${reservations.length}/${table.totalSeats} · ADMIN` : `${reservations.length}/${table.totalSeats} places`,
-      style: "compactMeta",
-      margin: [0, 0, 0, 8],
+      text: `${reservations.length}/${table.totalSeats} places occupées`,
+      style: "cardMeta",
+      margin: [0, 0, 0, 16],
     };
 
     const seatRows = [];
     for (let n = 1; n <= table.totalSeats; n++) {
       const r = bySeat.get(n);
       if (r) {
-        const name = truncateName(r.companionName || r.guest?.fullName || "—", 13);
+        const name = truncateName(r.companionName || r.guest?.fullName || "—");
         seatRows.push({
           text: [
-            { text: `${n} `, style: "compactSeatNum" },
-            { text: name, style: "compactSeatName" },
+            { text: `#${n}    `, style: "cardSeatNum" },
+            { text: name, style: "cardSeatName" },
           ],
-          margin: [0, 0, 0, 8],
+          margin: [0, 0, 0, 11],
         });
       } else {
-        seatRows.push({ text: `${n} Libre`, style: "compactSeatEmpty", margin: [0, 0, 0, 8] });
+        seatRows.push({ text: `#${n}    Libre`, style: "cardSeatEmpty", margin: [0, 0, 0, 11] });
       }
     }
 
     return {
-      table: { widths: ["*"], body: [[{ stack: [orderLine, header, meta, ...seatRows], border: [true, true, true, true] }]] },
+      width: CARD_WIDTH,
+      table: { widths: ["*"], body: [[{ stack: [header, meta, ...seatRows], border: [true, true, true, true] }]] },
       layout: {
         hLineColor: () => GOLD,
         vLineColor: () => GOLD,
-        hLineWidth: () => 0.6,
-        vLineWidth: () => 0.6,
-        paddingLeft: () => 14,
-        paddingRight: () => 12,
-        paddingTop: () => 12,
-        paddingBottom: () => 10,
+        hLineWidth: () => 0.75,
+        vLineWidth: () => 0.75,
+        paddingLeft: () => 18,
+        paddingRight: () => 18,
+        paddingTop: () => 20,
+        paddingBottom: () => 18,
       },
     };
   };
 
-  for (let i = 0; i < tables.length; i += COLUMNS) {
-    content.push({
-      columns: tables.slice(i, i + COLUMNS).map(renderTableCard),
-      columnGap: 10,
-      margin: [0, 0, 0, 6],
-    });
+  for (let i = 0; i < tables.length; i += 4) {
+    const group = tables.slice(i, i + 4);
+    for (let j = 0; j < group.length; j += 2) {
+      const rowTables = group.slice(j, j + 2);
+      content.push({
+        columns: rowTables.map(renderTableCard),
+        columnGap: 25,
+        margin: [0, 0, 0, 30],
+        pageBreak: i > 0 && j === 0 ? "before" : undefined,
+      });
+    }
   }
 
   return docToBuffer({
     pageSize: "A4",
-    pageOrientation: "landscape",
-    pageMargins: [20, 18, 20, 24],
+    pageMargins: [48, 34, 48, 28],
     background: decorativeFrame,
     footer: reportFooter,
     content,
     styles: {
       ...styles,
-      compactBrand: { fontSize: 9, bold: true, color: MUTED, characterSpacing: 0.5 },
-      compactTitle: { fontSize: 20, bold: true, color: DARK },
-      compactOrderTag: { fontSize: 8, bold: true, color: GOLD, characterSpacing: 0.5 },
-      compactTableName: { fontSize: 12.5, bold: true, color: DARK },
-      compactMeta: { fontSize: 8.5, color: MUTED },
-      compactSeatNum: { fontSize: 11, bold: true, color: GOLD },
-      compactSeatName: { fontSize: 11, color: DARK },
-      compactSeatEmpty: { fontSize: 11, italics: true, color: MUTED },
+      programTitle: { fontSize: 22, bold: true, color: DARK, margin: [0, 8, 0, 4] },
+      programDate: { fontSize: 10, italics: true, color: GOLD },
+      summaryOccupied: { fontSize: 15, bold: true, color: "#b45309" },
+      summaryFree: { fontSize: 15, bold: true, color: "#15803d" },
+      cardTableName: { fontSize: 18, bold: true, color: DARK },
+      cardOrderTag: { fontSize: 14, bold: true, color: GOLD },
+      cardAdminTag: { fontSize: 9, bold: true, color: GOLD },
+      cardMeta: { fontSize: 10, color: MUTED },
+      cardSeatNum: { fontSize: 13, bold: true, color: GOLD },
+      cardSeatName: { fontSize: 13, color: DARK },
+      cardSeatEmpty: { fontSize: 13, italics: true, color: MUTED },
     },
-    defaultStyle: { font: "Roboto", fontSize: 9 },
+    defaultStyle: { font: "Roboto", fontSize: 10 },
   });
 }
 
