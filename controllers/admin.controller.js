@@ -73,6 +73,28 @@ const approveReservation = asyncHandler(async (req, res) => {
   return ok(res, { reservation });
 });
 
+const setReservationStatus = asyncHandler(async (req, res) => {
+  const { status } = req.body;
+  if (![RESERVATION_STATUS.PENDING, RESERVATION_STATUS.VALIDATED].includes(status)) {
+    throw new ApiError(400, "Statut invalide.");
+  }
+
+  const reservation = await Reservation.findById(req.params.id).populate("guest").populate("table");
+  if (!reservation) throw new ApiError(404, "Réservation introuvable.");
+
+  const wasValidated = reservation.status === RESERVATION_STATUS.VALIDATED;
+  reservation.status = status;
+  reservation.validatedAt = status === RESERVATION_STATUS.VALIDATED ? new Date() : null;
+  await reservation.save();
+
+  emitSeatUpdated(reservation.table._id);
+  if (status === RESERVATION_STATUS.VALIDATED && !wasValidated) {
+    await emailService.sendConfirmationEmail(reservation.guest, reservation, reservation.table);
+  }
+
+  return ok(res, { reservation });
+});
+
 const deleteReservation = asyncHandler(async (req, res) => {
   const reservation = await Reservation.findByIdAndDelete(req.params.id);
   if (!reservation) throw new ApiError(404, "Réservation introuvable.");
@@ -616,6 +638,7 @@ module.exports = {
   dashboard,
   listReservations,
   approveReservation,
+  setReservationStatus,
   deleteReservation,
   createReservationManual,
   exportTablesPdf,
